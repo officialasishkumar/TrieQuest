@@ -1,0 +1,12 @@
+{
+  "name": "triequest-workspace",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:frontend": "npm --prefix frontend run test",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "test:backend": "cd backend && pytest",
+    "build": "npm run build:frontend"
+  }
+}
