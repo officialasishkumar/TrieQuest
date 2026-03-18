@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { PlatformMark } from "@/components/icons/PlatformIcons";
 import type { DailyPoint, DistributionPoint, MonthlyPoint, PlatformPoint } from "@/lib/types";
 
 const chartColors = [
@@ -100,7 +101,10 @@ export const PlatformLoyalty = ({ data }: { data: PlatformPoint[] }) => {
       <div className="space-y-2">
         {data.map((entry, index) => (
           <div key={entry.name} className="flex items-center gap-3">
-            <span className="text-xs text-foreground w-24 truncate">{entry.name}</span>
+            <div className="flex w-28 min-w-0 items-center gap-2">
+              <PlatformMark source={entry.name} className="h-4 w-4" decorative />
+              <span className="text-xs text-foreground truncate">{entry.name}</span>
+            </div>
             <div className="flex-1 h-5 bg-secondary rounded overflow-hidden">
               <div
                 className="h-full rounded transition-all duration-500"

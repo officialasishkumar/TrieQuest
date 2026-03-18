@@ -5,7 +5,6 @@ import {
   Check,
   Copy,
   ExternalLink,
-  Hash,
   Layers3,
   Trophy,
   UserRound,
@@ -14,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { PlatformBadge } from "@/components/PlatformBadge";
+import { ProblemThumbnail } from "@/components/ProblemThumbnail";
 import { formatRelativeTime } from "@/lib/format";
 import type { Problem } from "@/lib/types";
 
@@ -94,17 +94,12 @@ export const ProblemDetailsModal = ({ problem, onClose }: ProblemDetailsModalPro
         <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/5 to-background px-6 pb-6 pt-10 sm:px-8 sm:pt-12">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-end sm:text-left">
             <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-md shadow-xl sm:w-40">
-              {problem.thumbnailUrl ? (
-                <img
-                  src={problem.thumbnailUrl}
-                  alt={problem.title}
-                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-secondary">
-                  <Hash className="h-12 w-12 text-primary/50" />
-                </div>
-              )}
+              <ProblemThumbnail
+                title={problem.title}
+                url={problem.url}
+                thumbnailUrl={problem.thumbnailUrl}
+                variant="hero"
+              />
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col sm:pb-2">

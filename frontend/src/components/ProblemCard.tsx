@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { PlatformBadge } from "./PlatformBadge";
+import { ProblemThumbnail } from "./ProblemThumbnail";
 import { formatRelativeTime } from "@/lib/format";
 import type { Problem } from "@/lib/types";
 
@@ -24,13 +25,7 @@ export const ProblemCard = ({ problem, index = 0, onClick, onDelete }: ProblemCa
       aria-label={`Open details for ${problem.title}`}
     >
       <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
-        {problem.thumbnailUrl ? (
-          <img src={problem.thumbnailUrl} alt={problem.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <span className="text-sm font-mono text-muted-foreground">{problem.title[0]}</span>
-          </div>
-        )}
+        <ProblemThumbnail title={problem.title} url={problem.url} thumbnailUrl={problem.thumbnailUrl} />
       </div>
 
       <div className="flex-1 min-w-0">
