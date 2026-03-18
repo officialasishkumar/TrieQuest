@@ -1,7 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { PlatformBadge } from "./PlatformBadge";
 import { ProblemThumbnail } from "./ProblemThumbnail";
 import { formatRelativeTime } from "@/lib/format";
 import type { Problem } from "@/lib/types";
@@ -45,8 +44,6 @@ export const ProblemCard = ({ problem, index = 0, onClick, onDelete }: ProblemCa
             onDelete ? "group-hover:opacity-0 group-focus-visible:opacity-0" : ""
           }`}
         >
-          <PlatformBadge url={problem.url} showLabel={false} />
-
           <span className="hidden sm:inline-flex text-xs font-mono px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">
             {problem.difficulty}
           </span>
