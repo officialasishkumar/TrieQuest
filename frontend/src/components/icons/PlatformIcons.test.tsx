@@ -9,6 +9,8 @@ describe("getPlatformDetails", () => {
     expect(getPlatformDetails("https://www.geeksforgeeks.org/problems/count-pairs-with-given-sum").name).toBe(
       "GeeksForGeeks"
     );
+    expect(getPlatformDetails("https://coderbyte.com/challenges/sum-of-primes").id).toBe("coder");
+    expect(getPlatformDetails("https://coder.com").id).toBe("coder-enterprise");
   });
 
   it("matches supported platforms by display name and common phrasing", () => {

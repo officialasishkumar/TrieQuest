@@ -3,12 +3,13 @@ import { Code2 } from "lucide-react";
 
 import atcoderMark from "@/assets/platforms/atcoder.png";
 import codechefMark from "@/assets/platforms/codechef.svg";
-import codeforcesMark from "@/assets/platforms/codeforces.svg";
+import codeforcesMark from "@/assets/platforms/codeforces.png";
 import coderMark from "@/assets/platforms/coder.svg";
+import coderbyteMark from "@/assets/platforms/coderbyte.png";
 import geeksForGeeksMark from "@/assets/platforms/geeksforgeeks.svg";
 import hackerrankMark from "@/assets/platforms/hackerrank.svg";
-import leetCodeMark from "@/assets/platforms/leetcode.svg";
-import topCoderMark from "@/assets/platforms/topcoder.svg";
+import leetCodeMark from "@/assets/platforms/leetcode.png";
+import topCoderMark from "@/assets/platforms/topcoder.png";
 
 type PlatformDescriptor = {
   id: string;
@@ -72,7 +73,14 @@ const platformDescriptors: PlatformDescriptor[] = [
     id: "coder",
     name: "Coder",
     aliases: ["coder", "coderbyte", "coder byte"],
-    hosts: ["coderbyte.com", "coder.com"],
+    hosts: ["coderbyte.com"],
+    iconSrc: coderbyteMark,
+  },
+  {
+    id: "coder-enterprise",
+    name: "Coder",
+    aliases: [],
+    hosts: ["coder.com"],
     iconSrc: coderMark,
   },
 ];
