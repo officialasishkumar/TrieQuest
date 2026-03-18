@@ -1,0 +1,66 @@
+services:
+  mysql:
+    image: mysql:8.4@sha256:be18eb9dc45eea9b86cb74f8c68ab92ce8569ecc37ea4e6fade02e37036c5ff4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-triequest}
+      MYSQL_USER: ${MYSQL_USER:-triequest}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in your environment or .env file}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      TRIEQUEST_ENVIRONMENT: production
+      TRIEQUEST_SECRET_KEY: ${TRIEQUEST_SECRET_KEY:?set TRIEQUEST_SECRET_KEY in your environment or .env file}
+      TRIEQUEST_DATABASE_URL: mysql+pymysql://${MYSQL_USER:-triequest}:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}@mysql:3306/${MYSQL_DATABASE:-triequest}?charset=utf8mb4
+      TRIEQUEST_CORS_ORIGINS: ${TRIEQUEST_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      TRIEQUEST_ALLOWED_HOSTS: ${TRIEQUEST_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      TRIEQUEST_SEED_DEMO_DATA: ${TRIEQUEST_SEED_DEMO_DATA:-false}
+      TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS: ${TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS:-5}
+      TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS:-300}
+      TRIEQUEST_FORWARDED_ALLOW_IPS: ${TRIEQUEST_FORWARDED_ALLOW_IPS:-}
+      TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START: "false"
+      TRIEQUEST_WEB_CONCURRENCY: ${TRIEQUEST_WEB_CONCURRENCY:-2}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
