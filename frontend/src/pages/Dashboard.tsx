@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Filter, Users } from "lucide-react";
+import { Filter, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -205,14 +205,6 @@ const Dashboard = () => {
                   onClick={() => setShowManageMembers(true)}
                 >
                   <Users className="w-3.5 h-3.5" /> Members
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm gap-1 text-muted-foreground"
-                  onClick={() => navigate(`/analytics?groupId=${activeGroup}`)}
-                >
-                  Analytics <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             )}
