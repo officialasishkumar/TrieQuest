@@ -155,7 +155,8 @@ const CompanyProblemsPage = () => {
   const filtered = useMemo(() => {
     let result = problems;
     if (difficulty) result = result.filter((p) => p.difficulty === difficulty);
-    if (topicFilter) result = result.filter((p) => p.topics.includes(topicFilter));
+    if (topicFilter)
+      result = result.filter((p) => p.topics.split(", ").some((t) => t.trim() === topicFilter));
     if (titleSearch.trim()) {
       const q = titleSearch.toLowerCase();
       result = result.filter((p) => p.title.toLowerCase().includes(q));
@@ -181,6 +182,7 @@ const CompanyProblemsPage = () => {
     setTopicQuery("");
     setSortBy("frequency");
     setSortAsc(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const goBack = useCallback(() => {
@@ -188,6 +190,7 @@ const CompanyProblemsPage = () => {
     setDifficulty(null);
     setTopicFilter(null);
     setTitleSearch("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -495,6 +498,7 @@ const CompanyProblemsPage = () => {
                       <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                         {problem.topics
                           .split(", ")
+                          .filter(Boolean)
                           .slice(0, 3)
                           .map((topic) => (
                             <span
@@ -504,9 +508,9 @@ const CompanyProblemsPage = () => {
                               {topic}
                             </span>
                           ))}
-                        {problem.topics.split(", ").length > 3 && (
+                        {problem.topics.split(", ").filter(Boolean).length > 3 && (
                           <span className="text-[10px] text-muted-foreground/50">
-                            +{problem.topics.split(", ").length - 3}
+                            +{problem.topics.split(", ").filter(Boolean).length - 3}
                           </span>
                         )}
                       </div>
@@ -709,14 +713,17 @@ const CompanyProblemsPage = () => {
                   >
                     {randomPick.problem.difficulty}
                   </span>
-                  {randomPick.problem.topics.split(", ").map((topic) => (
-                    <span
-                      key={topic}
-                      className="text-xs px-2 py-0.5 rounded-md bg-secondary text-muted-foreground"
-                    >
-                      {topic}
-                    </span>
-                  ))}
+                  {randomPick.problem.topics
+                    .split(", ")
+                    .filter(Boolean)
+                    .map((topic) => (
+                      <span
+                        key={topic}
+                        className="text-xs px-2 py-0.5 rounded-md bg-secondary text-muted-foreground"
+                      >
+                        {topic}
+                      </span>
+                    ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
