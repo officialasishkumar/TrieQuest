@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Bell, Code2, LogOut, Moon, Plus, Search, Sun, UserCircle, UserPlus, Users } from "lucide-react";
+import { BarChart3, Bell, Building2, Code2, LogOut, Moon, Plus, Search, Sun, UserCircle, UserPlus, Users } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -51,7 +51,7 @@ export const MainLayout = () => {
 
   const navItems = [
     { icon: Code2, label: "Feed", path: "/dashboard" },
-    { icon: Search, label: "Search", action: () => setFriendsManagerTab("search") },
+    { icon: Building2, label: "Companies", path: "/companies" },
     { icon: Plus, label: "Add", action: () => setShowCreateGroup(true) },
     {
       icon: BarChart3,
@@ -111,6 +111,14 @@ export const MainLayout = () => {
               onClick={() => setFriendsManagerTab("search")}
             >
               <UserPlus className="w-4.5 h-4.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/companies") ? "bg-accent text-accent-foreground" : ""}`}
+              onClick={() => navigate("/companies")}
+            >
+              <Building2 className="w-4.5 h-4.5" />
             </Button>
             <Button
               variant="ghost"
