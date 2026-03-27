@@ -2,10 +2,6 @@
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://triequest-api.duckdns.org/api/$1"
-        },
-        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
