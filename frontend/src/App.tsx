@@ -17,6 +17,13 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const CompanyProblemsPage = lazy(() => import("./pages/CompanyProblemsPage"));
 const ChallengesPage = lazy(() => import("./pages/ChallengesPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const VisualizePage = lazy(() => import("./pages/VisualizePage"));
+const LinearSearchViz = lazy(() => import("./pages/visualize/LinearSearch"));
+const BinarySearchViz = lazy(() => import("./pages/visualize/BinarySearch"));
+const StackViz = lazy(() => import("./pages/visualize/StackViz"));
+const LinkedListViz = lazy(() => import("./pages/visualize/LinkedListViz"));
+const BinaryTreeViz = lazy(() => import("./pages/visualize/BinaryTreeViz"));
+const BFSGridViz = lazy(() => import("./pages/visualize/BFSGrid"));
 
 const queryClient = new QueryClient();
 
@@ -44,6 +51,13 @@ const App = () => (
                   <Route path="/companies" element={<CompanyProblemsPage />} />
                   <Route path="/challenges" element={<ChallengesPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/visualize" element={<VisualizePage />} />
+                  <Route path="/visualize/linear-search" element={<LinearSearchViz />} />
+                  <Route path="/visualize/binary-search" element={<BinarySearchViz />} />
+                  <Route path="/visualize/stack" element={<StackViz />} />
+                  <Route path="/visualize/linked-list" element={<LinkedListViz />} />
+                  <Route path="/visualize/binary-tree" element={<BinaryTreeViz />} />
+                  <Route path="/visualize/bfs-grid" element={<BFSGridViz />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
