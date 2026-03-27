@@ -153,8 +153,8 @@ const ProfilePage = () => {
         )}
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty</h2>
               <div className="h-px flex-1 bg-border/40" />
             </div>
@@ -162,14 +162,14 @@ const ProfilePage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="p-6 rounded-2xl bg-card border shadow-sm"
+              className="p-6 rounded-2xl bg-card border shadow-sm flex-1"
             >
               <PlatformDifficultyBreakdown data={analyticsQuery.data?.platformDifficulty ?? []} />
             </motion.div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Platform Loyalty</h2>
               <div className="h-px flex-1 bg-border/40" />
             </div>
@@ -177,7 +177,7 @@ const ProfilePage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="p-6 rounded-2xl bg-card border shadow-sm"
+              className="p-6 rounded-2xl bg-card border shadow-sm flex-1"
             >
               <PlatformLoyalty data={analyticsQuery.data?.platformLoyalty ?? []} />
             </motion.div>
