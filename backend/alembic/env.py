@@ -38,11 +38,24 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _ssl_connect_args() -> dict[str, object]:
+    args: dict[str, object] = {}
+    if settings.database_ssl_ca_path:
+        args["ssl_ca"] = settings.database_ssl_ca_path
+    if settings.database_ssl_verify_cert:
+        args["ssl_verify_cert"] = True
+    if settings.database_ssl_verify_identity:
+        args["ssl_verify_identity"] = True
+    return args
+
+
 def run_migrations_online() -> None:
+    connect_args = _ssl_connect_args()
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     with connectable.connect() as connection:
