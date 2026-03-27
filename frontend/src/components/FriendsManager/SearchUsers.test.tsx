@@ -13,7 +13,7 @@ describe("SearchUsers", () => {
       <SearchUsers
         searchQuery=""
         setSearchQuery={setSearchQuery}
-        searchResult={null}
+        searchResults={[]}
         hasSearched={false}
         isSearching={false}
         searchError={null}
@@ -35,7 +35,7 @@ describe("SearchUsers", () => {
       <SearchUsers
         searchQuery="bob_smith"
         setSearchQuery={setSearchQuery}
-        searchResult={null}
+        searchResults={[]}
         hasSearched={false}
         isSearching={false}
         searchError={null}
