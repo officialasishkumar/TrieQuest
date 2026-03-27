@@ -1,6 +1,7 @@
 import type {
   Analytics,
   AuthResponse,
+  Challenge,
   Friend,
   FriendLookupResponse,
   FriendRequest,
@@ -233,4 +234,33 @@ export const api = {
     apiRequest<GlobalStatsResponse>("/api/stats", {
       skipAuth: true,
     }),
+  listChallenges: () => apiRequest<Challenge[]>("/api/challenges"),
+  getChallenge: (id: number) => apiRequest<Challenge>(`/api/challenges/${id}`),
+  createChallenge: (input: {
+    title: string;
+    platform: string;
+    numProblems: number;
+    minRating: number;
+    maxRating: number;
+    tags: string[];
+    inviteUserIds: number[];
+  }) =>
+    apiRequest<Challenge>("/api/challenges", {
+      method: "POST",
+      body: JSON.stringify({
+        title: input.title,
+        platform: input.platform,
+        num_problems: input.numProblems,
+        min_rating: input.minRating,
+        max_rating: input.maxRating,
+        tags: input.tags,
+        invite_user_ids: input.inviteUserIds,
+      }),
+    }),
+  acceptChallenge: (id: number) =>
+    apiRequest<Challenge>(`/api/challenges/${id}/accept`, { method: "POST" }),
+  declineChallenge: (id: number) =>
+    apiRequest<void>(`/api/challenges/${id}/decline`, { method: "POST" }),
+  startChallenge: (id: number) =>
+    apiRequest<Challenge>(`/api/challenges/${id}/start`, { method: "POST" }),
 };

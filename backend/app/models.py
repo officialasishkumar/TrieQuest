@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -109,3 +109,62 @@ class ProblemShare(Base):
 
     group: Mapped[Group] = relationship("Group", back_populates="problems")
     shared_by: Mapped[User] = relationship("User", back_populates="shared_problems")
+
+
+class Challenge(Base):
+    __tablename__ = "challenges"
+    __table_args__ = (
+        Index("ix_challenges_created_by_status", "created_by_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    platform: Mapped[str] = mapped_column(String(32), default="codeforces")
+    num_problems: Mapped[int] = mapped_column(SmallInteger, default=3)
+    min_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tags: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    created_by: Mapped[User] = relationship("User")
+    participants: Mapped[list[ChallengeParticipant]] = relationship(
+        "ChallengeParticipant", back_populates="challenge", cascade="all, delete-orphan",
+    )
+    problems: Mapped[list[ChallengeProblem]] = relationship(
+        "ChallengeProblem", back_populates="challenge", cascade="all, delete-orphan",
+    )
+
+
+class ChallengeParticipant(Base):
+    __tablename__ = "challenge_participants"
+    __table_args__ = (
+        UniqueConstraint("challenge_id", "user_id", name="uq_challenge_participant"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="invited")
+    joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    challenge: Mapped[Challenge] = relationship("Challenge", back_populates="participants")
+    user: Mapped[User] = relationship("User")
+
+
+class ChallengeProblem(Base):
+    __tablename__ = "challenge_problems"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    challenge_id: Mapped[int] = mapped_column(ForeignKey("challenges.id", ondelete="CASCADE"), index=True)
+    problem_url: Mapped[str] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(String(255))
+    contest_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    problem_index: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tags: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    order_index: Mapped[int] = mapped_column(SmallInteger, default=0)
+
+    challenge: Mapped[Challenge] = relationship("Challenge", back_populates="problems")

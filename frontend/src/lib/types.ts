@@ -115,6 +115,42 @@ export type PlatformDifficultyGroup = {
   items: PlatformDifficultyItem[];
 };
 
+export type ChallengeProblem = {
+  id: number;
+  problemUrl: string;
+  title: string;
+  contestId?: number | null;
+  problemIndex?: string | null;
+  rating?: number | null;
+  tags?: string | null;
+  orderIndex: number;
+};
+
+export type ChallengeParticipant = {
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  status: string;
+};
+
+export type Challenge = {
+  id: number;
+  title: string;
+  platform: string;
+  numProblems: number;
+  minRating?: number | null;
+  maxRating?: number | null;
+  tags?: string | null;
+  status: string;
+  createdBy: string;
+  createdById: number;
+  participants: ChallengeParticipant[];
+  problems: ChallengeProblem[];
+  createdAt: string;
+  startedAt?: string | null;
+};
+
 export type Analytics = {
   stats: StatPoint[];
   difficultyDistribution: DistributionPoint[];

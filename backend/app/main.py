@@ -16,7 +16,7 @@ from app.config import get_settings
 from app.db import engine, get_db
 from app.deps import get_current_user
 from app.http import install_security_middleware
-from app.models import Friendship, Group, GroupMembership, ProblemShare, User
+from app.models import Challenge, ChallengeParticipant, ChallengeProblem, Friendship, Group, GroupMembership, ProblemShare, User
 from app.schemas import (
     AnalyticsResponse,
     FriendLookupQuery,
@@ -34,6 +34,10 @@ from app.schemas import (
     RegisterRequest,
     TokenResponse,
     UserSummary,
+    ChallengeCreateRequest,
+    ChallengeParticipantSummary,
+    ChallengeProblemSummary,
+    ChallengeSummary,
 )
 from app.security import create_access_token, hash_password, verify_password
 from app.services.analytics import build_analytics, filter_problems_by_window
@@ -612,6 +616,184 @@ def create_app() -> FastAPI:
         ).all()
         return build_analytics(filter_problems_by_window(problems, window))
 
+    # ── Challenges ───────────────────────────────────────────────────
+
+    @app.post("/api/challenges", response_model=ChallengeSummary, status_code=status.HTTP_201_CREATED)
+    async def create_challenge(
+        payload: ChallengeCreateRequest,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> ChallengeSummary:
+        from app.services.codeforces import fetch_cf_problems, pick_random_problems
+
+        challenge = Challenge(
+            created_by_id=current_user.id,
+            title=payload.title,
+            platform=payload.platform,
+            num_problems=payload.num_problems,
+            min_rating=payload.min_rating,
+            max_rating=payload.max_rating,
+            tags=",".join(payload.tags) if payload.tags else None,
+            status="pending",
+        )
+        db.add(challenge)
+        db.flush()
+
+        db.add(ChallengeParticipant(
+            challenge_id=challenge.id, user_id=current_user.id, status="accepted",
+            joined_at=datetime.now(timezone.utc),
+        ))
+        for uid in payload.invite_user_ids:
+            if uid == current_user.id:
+                continue
+            db.add(ChallengeParticipant(challenge_id=challenge.id, user_id=uid, status="invited"))
+
+        cf_problems = await fetch_cf_problems(
+            tags=payload.tags or None,
+            min_rating=payload.min_rating,
+            max_rating=payload.max_rating,
+        )
+        selected = pick_random_problems(cf_problems, payload.num_problems)
+        for idx, prob in enumerate(selected):
+            db.add(ChallengeProblem(
+                challenge_id=challenge.id,
+                problem_url=prob.url,
+                title=prob.name,
+                contest_id=prob.contest_id,
+                problem_index=prob.index,
+                rating=prob.rating,
+                tags=",".join(prob.tags) if prob.tags else None,
+                order_index=idx,
+            ))
+
+        db.commit()
+        db.refresh(challenge)
+        challenge = db.scalar(
+            select(Challenge).where(Challenge.id == challenge.id)
+            .options(
+                joinedload(Challenge.participants).joinedload(ChallengeParticipant.user),
+                joinedload(Challenge.problems),
+                joinedload(Challenge.created_by),
+            )
+        )
+        return _serialize_challenge(challenge)
+
+    @app.get("/api/challenges", response_model=list[ChallengeSummary])
+    def list_challenges(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> list[ChallengeSummary]:
+        challenges = db.scalars(
+            select(Challenge)
+            .join(ChallengeParticipant, ChallengeParticipant.challenge_id == Challenge.id)
+            .where(ChallengeParticipant.user_id == current_user.id)
+            .options(
+                joinedload(Challenge.participants).joinedload(ChallengeParticipant.user),
+                joinedload(Challenge.problems),
+                joinedload(Challenge.created_by),
+            )
+            .order_by(Challenge.created_at.desc())
+        ).unique().all()
+        return [_serialize_challenge(c) for c in challenges]
+
+    @app.get("/api/challenges/{challenge_id}", response_model=ChallengeSummary)
+    def get_challenge(
+        challenge_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> ChallengeSummary:
+        challenge = db.scalar(
+            select(Challenge).where(Challenge.id == challenge_id)
+            .options(
+                joinedload(Challenge.participants).joinedload(ChallengeParticipant.user),
+                joinedload(Challenge.problems),
+                joinedload(Challenge.created_by),
+            )
+        )
+        if challenge is None:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        participant = next((p for p in challenge.participants if p.user_id == current_user.id), None)
+        if participant is None:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        return _serialize_challenge(challenge)
+
+    @app.post("/api/challenges/{challenge_id}/accept", response_model=ChallengeSummary)
+    def accept_challenge(
+        challenge_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> ChallengeSummary:
+        challenge = db.scalar(
+            select(Challenge).where(Challenge.id == challenge_id)
+            .options(
+                joinedload(Challenge.participants).joinedload(ChallengeParticipant.user),
+                joinedload(Challenge.problems),
+                joinedload(Challenge.created_by),
+            )
+        )
+        if challenge is None:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        participant = next((p for p in challenge.participants if p.user_id == current_user.id), None)
+        if participant is None:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        if participant.status != "invited":
+            raise HTTPException(status_code=400, detail="Already responded.")
+        participant.status = "accepted"
+        participant.joined_at = datetime.now(timezone.utc)
+
+        all_accepted = all(p.status == "accepted" for p in challenge.participants)
+        if all_accepted and challenge.status == "pending":
+            challenge.status = "active"
+            challenge.started_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(challenge)
+        return _serialize_challenge(challenge)
+
+    @app.post("/api/challenges/{challenge_id}/decline", status_code=status.HTTP_204_NO_CONTENT)
+    def decline_challenge(
+        challenge_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> None:
+        participant = db.scalar(
+            select(ChallengeParticipant)
+            .where(ChallengeParticipant.challenge_id == challenge_id, ChallengeParticipant.user_id == current_user.id)
+        )
+        if participant is None:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        if participant.status != "invited":
+            raise HTTPException(status_code=400, detail="Already responded.")
+        participant.status = "declined"
+        db.commit()
+
+    @app.post("/api/challenges/{challenge_id}/start", response_model=ChallengeSummary)
+    def start_challenge(
+        challenge_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> ChallengeSummary:
+        challenge = db.scalar(
+            select(Challenge).where(Challenge.id == challenge_id)
+            .options(
+                joinedload(Challenge.participants).joinedload(ChallengeParticipant.user),
+                joinedload(Challenge.problems),
+                joinedload(Challenge.created_by),
+            )
+        )
+        if challenge is None or challenge.created_by_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Challenge not found.")
+        if challenge.status != "pending":
+            raise HTTPException(status_code=400, detail="Challenge is not pending.")
+        has_declined = any(p.status == "declined" for p in challenge.participants)
+        if has_declined:
+            raise HTTPException(status_code=400, detail="Some participants have declined.")
+        challenge.status = "active"
+        challenge.started_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(challenge)
+        return _serialize_challenge(challenge)
+
     return app
 
 
@@ -735,6 +917,46 @@ def _ensure_aware(value: datetime) -> datetime:
     if value.tzinfo is not None:
         return value
     return value.replace(tzinfo=timezone.utc)
+
+
+def _serialize_challenge(challenge: Challenge) -> ChallengeSummary:
+    return ChallengeSummary(
+        id=challenge.id,
+        title=challenge.title,
+        platform=challenge.platform,
+        num_problems=challenge.num_problems,
+        min_rating=challenge.min_rating,
+        max_rating=challenge.max_rating,
+        tags=challenge.tags,
+        status=challenge.status,
+        created_by=challenge.created_by.username,
+        created_by_id=challenge.created_by_id,
+        participants=[
+            ChallengeParticipantSummary(
+                user_id=p.user.id,
+                username=p.user.username,
+                display_name=p.user.display_name,
+                avatar_url=p.user.avatar_url,
+                status=p.status,
+            )
+            for p in challenge.participants
+        ],
+        problems=[
+            ChallengeProblemSummary(
+                id=prob.id,
+                problem_url=prob.problem_url,
+                title=prob.title,
+                contest_id=prob.contest_id,
+                problem_index=prob.problem_index,
+                rating=prob.rating,
+                tags=prob.tags,
+                order_index=prob.order_index,
+            )
+            for prob in sorted(challenge.problems, key=lambda x: x.order_index)
+        ],
+        created_at=_ensure_aware(challenge.created_at),
+        started_at=_ensure_aware(challenge.started_at) if challenge.started_at else None,
+    )
 
 
 def _build_auth_rate_limit_key(request: Request, identifier: str) -> str:

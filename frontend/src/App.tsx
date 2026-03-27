@@ -15,6 +15,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const CompanyProblemsPage = lazy(() => import("./pages/CompanyProblemsPage"));
+const ChallengesPage = lazy(() => import("./pages/ChallengesPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/companies" element={<CompanyProblemsPage />} />
+                  <Route path="/challenges" element={<ChallengesPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

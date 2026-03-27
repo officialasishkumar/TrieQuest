@@ -288,3 +288,54 @@ class AnalyticsResponse(APIModel):
     monthly_trend: list[MonthlyPoint]
     member_leaderboard: list[MemberLeaderboardEntry]
     top_problems: list[TopProblemEntry]
+
+
+class ChallengeCreateRequest(APIModel):
+    title: str = Field(min_length=2, max_length=120)
+    platform: str = Field(default="codeforces", max_length=32)
+    num_problems: int = Field(default=3, ge=1, le=10)
+    min_rating: int | None = Field(default=800, ge=0, le=3500)
+    max_rating: int | None = Field(default=1600, ge=0, le=3500)
+    tags: list[str] = Field(default_factory=list)
+    invite_user_ids: list[int] = Field(min_length=1)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        return normalize_required_text(value, field_name="Challenge title")
+
+
+class ChallengeProblemSummary(APIModel):
+    id: int
+    problem_url: str
+    title: str
+    contest_id: int | None = None
+    problem_index: str | None = None
+    rating: int | None = None
+    tags: str | None = None
+    order_index: int
+
+
+class ChallengeParticipantSummary(APIModel):
+    user_id: int
+    username: str
+    display_name: str
+    avatar_url: str | None = None
+    status: str
+
+
+class ChallengeSummary(APIModel):
+    id: int
+    title: str
+    platform: str
+    num_problems: int
+    min_rating: int | None = None
+    max_rating: int | None = None
+    tags: str | None = None
+    status: str
+    created_by: str
+    created_by_id: int
+    participants: list[ChallengeParticipantSummary]
+    problems: list[ChallengeProblemSummary]
+    created_at: datetime
+    started_at: datetime | None = None
