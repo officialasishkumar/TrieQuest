@@ -25,7 +25,14 @@ ATCODER_TIER_ORDER = ["Gray", "Brown", "Green", "Cyan", "Blue", "Yellow", "Orang
 LC_TIER_ORDER = ["Easy", "Medium", "Hard"]
 
 
+_LEGACY_CF = {"Easy": "Newbie", "Medium": "Specialist", "Hard": "Expert"}
+_LEGACY_CC = {"Easy": "1\u2605", "Medium": "3\u2605", "Hard": "5\u2605"}
+_LEGACY_AC = {"Easy": "Gray", "Medium": "Green", "Hard": "Blue"}
+
+
 def _cf_tier(difficulty: str) -> str:
+    if difficulty in _LEGACY_CF:
+        return _LEGACY_CF[difficulty]
     try:
         rating = int(difficulty)
     except (ValueError, TypeError):
@@ -48,6 +55,10 @@ def _cf_tier(difficulty: str) -> str:
 def _tier_for_platform(platform: str, difficulty: str) -> str:
     if platform == "codeforces":
         return _cf_tier(difficulty)
+    if platform == "codechef":
+        return _LEGACY_CC.get(difficulty, difficulty)
+    if platform == "atcoder":
+        return _LEGACY_AC.get(difficulty, difficulty)
     return difficulty
 
 

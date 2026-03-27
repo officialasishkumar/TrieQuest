@@ -91,14 +91,14 @@ PROBLEM_CATALOG: dict[tuple[str, str], dict[str, str | int | None]] = {
         "title": "Next Round",
         "contest": "Codeforces Beta Round 158",
         "tags": "implementation,sorting",
-        "difficulty": "800",
+        "difficulty": "1300",
         "solved_by_count": 482119,
     },
     (ProblemPlatform.CODEFORCES, "71A"): {
         "title": "Way Too Long Words",
         "contest": "Codeforces Beta Round 71",
         "tags": "strings,implementation",
-        "difficulty": "800",
+        "difficulty": "1700",
         "solved_by_count": 662904,
     },
     (ProblemPlatform.CODECHEF, "FLOW001"): {
@@ -112,14 +112,14 @@ PROBLEM_CATALOG: dict[tuple[str, str], dict[str, str | int | None]] = {
         "title": "Number Mirror",
         "contest": "CodeChef Beginner",
         "tags": "basics,io",
-        "difficulty": "1\u2605",
+        "difficulty": "2\u2605",
         "solved_by_count": 294417,
     },
     (ProblemPlatform.CODECHEF, "HS08TEST"): {
         "title": "ATM",
         "contest": "CodeChef Practice",
         "tags": "math,implementation",
-        "difficulty": "1\u2605",
+        "difficulty": "3\u2605",
         "solved_by_count": 285554,
     },
     (ProblemPlatform.ATCODER, "dp_a"): {
