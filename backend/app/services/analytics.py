@@ -16,7 +16,7 @@ from app.schemas import (
     StatPoint,
     TopProblemEntry,
 )
-from app.services.metadata import PLATFORM_LABELS
+from app.services.metadata import PLATFORM_LABELS, normalize_difficulty_for_platform
 
 
 CF_TIER_ORDER = ["Newbie", "Pupil", "Specialist", "Expert", "Candidate Master", "Master", "Grandmaster"]
@@ -92,7 +92,10 @@ def filter_problems_by_window(problems: list[ProblemShare], window: str) -> list
 def build_analytics(problems: list[ProblemShare]) -> AnalyticsResponse:
     total_problems = len(problems)
     contest_count = len({normalize_value(problem.contest) for problem in problems if problem.contest})
-    difficulty_counts = Counter(problem.difficulty or "Unknown" for problem in problems)
+    difficulty_counts = Counter(
+        normalize_difficulty_for_platform(problem.platform, problem.difficulty or "Unknown", getattr(problem, "platform_problem_id", None))
+        for problem in problems
+    )
     platform_counts = Counter(problem.platform for problem in problems)
     weeks_divisor = max(1, round(total_problems / 7) if total_problems > 14 else 1)
     avg_per_week = round(total_problems / weeks_divisor) if total_problems else 0
@@ -147,7 +150,10 @@ def build_analytics(problems: list[ProblemShare]) -> AnalyticsResponse:
         member_groups[problem.shared_by.username].append(problem)
     member_leaderboard = []
     for username, shared_problems in sorted(member_groups.items(), key=lambda item: len(item[1]), reverse=True)[:6]:
-        top_difficulty = Counter(problem.difficulty or "Unknown" for problem in shared_problems).most_common(1)[0][0]
+        top_difficulty = Counter(
+            normalize_difficulty_for_platform(p.platform, p.difficulty or "Unknown", getattr(p, "platform_problem_id", None))
+            for p in shared_problems
+        ).most_common(1)[0][0]
         member_leaderboard.append(
             MemberLeaderboardEntry(
                 name=f"@{username}",
@@ -167,7 +173,9 @@ def build_analytics(problems: list[ProblemShare]) -> AnalyticsResponse:
                 title=representative.title,
                 contest=representative.contest,
                 shares=len(grouped_problems),
-                difficulty=representative.difficulty or "Unknown",
+                difficulty=normalize_difficulty_for_platform(
+                    representative.platform, representative.difficulty or "Unknown", getattr(representative, "platform_problem_id", None),
+                ),
             )
         )
 
@@ -192,7 +200,8 @@ def _build_platform_difficulty(problems: list[ProblemShare]) -> list[PlatformDif
     for platform, group_problems in sorted(platform_groups.items(), key=lambda x: len(x[1]), reverse=True):
         tier_counts: Counter[str] = Counter()
         for problem in group_problems:
-            tier = _tier_for_platform(platform, problem.difficulty or "Unknown")
+            normalized = normalize_difficulty_for_platform(platform, problem.difficulty or "Unknown", getattr(problem, "platform_problem_id", None))
+            tier = _tier_for_platform(platform, normalized)
             tier_counts[tier] += 1
 
         total = len(group_problems)

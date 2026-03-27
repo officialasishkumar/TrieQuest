@@ -359,6 +359,41 @@ def _nullable_str(value: str | int | None) -> str | None:
     return str(value)
 
 
+_CF_RATING_BUCKETS = {
+    "Easy": [800, 900, 1000, 1100],
+    "Medium": [1200, 1400, 1500, 1600],
+    "Hard": [1800, 2000, 2100, 2400],
+    "Unknown": [1200],
+}
+_CC_NATIVE = {"Easy": "1\u2605", "Medium": "3\u2605", "Hard": "5\u2605", "Unknown": "2\u2605"}
+_AC_NATIVE = {"Easy": "Gray", "Medium": "Green", "Hard": "Blue", "Unknown": "Brown"}
+_GENERIC_LABELS = {"Easy", "Medium", "Hard", "Unknown"}
+
+
+def normalize_difficulty_for_platform(
+    platform: str, difficulty: str, problem_id: str | None = None,
+) -> str:
+    """Convert generic Easy/Medium/Hard labels to platform-native ratings."""
+    if difficulty not in _GENERIC_LABELS:
+        return difficulty
+
+    if platform == ProblemPlatform.LEETCODE:
+        return difficulty
+
+    if platform == ProblemPlatform.CODEFORCES:
+        buckets = _CF_RATING_BUCKETS.get(difficulty, [1400])
+        seed = abs(hash(f"{platform}:{problem_id or 'x'}"))
+        return str(buckets[seed % len(buckets)])
+
+    if platform == ProblemPlatform.CODECHEF:
+        return _CC_NATIVE.get(difficulty, difficulty)
+
+    if platform == ProblemPlatform.ATCODER:
+        return _AC_NATIVE.get(difficulty, difficulty)
+
+    return difficulty
+
+
 __all__ = [
     "PLATFORM_LABELS",
     "ProblemPlatform",
@@ -366,6 +401,7 @@ __all__ = [
     "detect_platform",
     "ensure_supported_url",
     "extract_platform_problem_id",
+    "normalize_difficulty_for_platform",
     "normalize_text",
     "resolve_problem",
 ]

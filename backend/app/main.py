@@ -38,7 +38,7 @@ from app.schemas import (
 from app.security import create_access_token, hash_password, verify_password
 from app.services.analytics import build_analytics, filter_problems_by_window
 from app.services.auth import find_user_by_identifier
-from app.services.metadata import PLATFORM_LABELS, resolve_problem
+from app.services.metadata import PLATFORM_LABELS, normalize_difficulty_for_platform, resolve_problem
 from app.services.rate_limit import get_auth_rate_limiter, get_friend_lookup_rate_limiter
 
 
@@ -707,7 +707,9 @@ def _serialize_problem(problem: ProblemShare) -> ProblemSummary:
         title=problem.title,
         contest=problem.contest,
         tags=problem.tags,
-        difficulty=problem.difficulty or "Unknown",
+        difficulty=normalize_difficulty_for_platform(
+            problem.platform, problem.difficulty or "Unknown", problem.platform_problem_id,
+        ),
         url=problem.problem_url,
         platform=PLATFORM_LABELS.get(problem.platform, problem.platform.title()),
         shared_by=problem.shared_by.username,
