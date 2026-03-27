@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, GitCompare, Layers, Link2, GitBranch, Grid3X3 } from "lucide-react";
+import { Search, GitCompare, Layers, Link2, GitBranch, Grid3X3, ArrowUpDown, Split, Zap, ListOrdered, Route, Waypoints } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const algorithms = [
@@ -9,6 +9,12 @@ const algorithms = [
   { slug: "linked-list", title: "Linked List", description: "Dynamic nodes connected by pointers. Insert & delete anywhere.", icon: Link2, color: "text-orange-500" },
   { slug: "binary-tree", title: "Binary Tree", description: "Traverse a binary tree in pre-order, in-order, post-order & level-order.", icon: GitBranch, color: "text-pink-500" },
   { slug: "bfs-grid", title: "BFS Pathfinder", description: "Find the shortest path on a grid using breadth-first search.", icon: Grid3X3, color: "text-cyan-500" },
+  { slug: "bubble-sort", title: "Bubble Sort", description: "Repeatedly swap adjacent elements until the array is sorted.", icon: ArrowUpDown, color: "text-rose-500" },
+  { slug: "merge-sort", title: "Merge Sort", description: "Divide and conquer — split, sort halves, merge back together.", icon: Split, color: "text-indigo-500" },
+  { slug: "quick-sort", title: "Quick Sort", description: "Partition around a pivot and recursively sort sub-arrays.", icon: Zap, color: "text-amber-500" },
+  { slug: "queue", title: "Queue", description: "First-in first-out data structure with enqueue, dequeue & peek.", icon: ListOrdered, color: "text-teal-500" },
+  { slug: "dfs-grid", title: "DFS Pathfinder", description: "Explore a grid depth-first — compare with BFS to see the difference.", icon: Route, color: "text-violet-500" },
+  { slug: "dijkstra", title: "Dijkstra's Algorithm", description: "Find shortest paths in a weighted graph from a source node.", icon: Waypoints, color: "text-sky-500" },
 ];
 
 export default function VisualizePage() {

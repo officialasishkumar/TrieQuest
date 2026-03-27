@@ -24,6 +24,12 @@ const StackViz = lazy(() => import("./pages/visualize/StackViz"));
 const LinkedListViz = lazy(() => import("./pages/visualize/LinkedListViz"));
 const BinaryTreeViz = lazy(() => import("./pages/visualize/BinaryTreeViz"));
 const BFSGridViz = lazy(() => import("./pages/visualize/BFSGrid"));
+const BubbleSortViz = lazy(() => import("./pages/visualize/BubbleSort"));
+const MergeSortViz = lazy(() => import("./pages/visualize/MergeSort"));
+const QuickSortViz = lazy(() => import("./pages/visualize/QuickSort"));
+const QueueViz = lazy(() => import("./pages/visualize/QueueViz"));
+const DFSGridViz = lazy(() => import("./pages/visualize/DFSGrid"));
+const DijkstraViz = lazy(() => import("./pages/visualize/Dijkstra"));
 
 const queryClient = new QueryClient();
 
@@ -58,6 +64,12 @@ const App = () => (
                   <Route path="/visualize/linked-list" element={<LinkedListViz />} />
                   <Route path="/visualize/binary-tree" element={<BinaryTreeViz />} />
                   <Route path="/visualize/bfs-grid" element={<BFSGridViz />} />
+                  <Route path="/visualize/bubble-sort" element={<BubbleSortViz />} />
+                  <Route path="/visualize/merge-sort" element={<MergeSortViz />} />
+                  <Route path="/visualize/quick-sort" element={<QuickSortViz />} />
+                  <Route path="/visualize/queue" element={<QueueViz />} />
+                  <Route path="/visualize/dfs-grid" element={<DFSGridViz />} />
+                  <Route path="/visualize/dijkstra" element={<DijkstraViz />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
