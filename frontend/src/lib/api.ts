@@ -212,6 +212,8 @@ export const api = {
     );
     return response.user;
   },
+  searchUsers: (q: string) =>
+    apiRequest<Friend[]>(`/api/friends/search?q=${encodeURIComponent(q)}`),
   listFriends: () => apiRequest<Friend[]>("/api/friends/list"),
   addFriend: (friendId: number) =>
     apiRequest<Friend>(`/api/friends/${friendId}`, {

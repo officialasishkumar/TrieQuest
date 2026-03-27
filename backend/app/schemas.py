@@ -138,6 +138,10 @@ class FriendLookupResponse(APIModel):
     user: FriendUser | None = None
 
 
+class FriendSearchQuery(APIModel):
+    q: str = Field(min_length=2, max_length=50)
+
+
 class FriendRequest(APIModel):
     id: int
     from_user: FriendUser

@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
@@ -22,6 +22,7 @@ from app.schemas import (
     FriendLookupQuery,
     FriendLookupResponse,
     FriendRequest,
+    FriendSearchQuery,
     FriendUser,
     GlobalStatsResponse,
     GroupAddMembersRequest,
@@ -212,6 +213,58 @@ def create_app() -> FastAPI:
                 pending_incoming=pending_incoming,
             )
         )
+
+    @app.get("/api/friends/search", response_model=list[FriendUser])
+    def search_users(
+        request: Request,
+        params: FriendSearchQuery = Depends(),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> list[FriendUser]:
+        limiter = get_friend_lookup_rate_limiter()
+        rate_limit_key = _build_friend_lookup_rate_limit_key(request, current_user.id)
+        rate_limit_decision = limiter.check(rate_limit_key)
+        if not rate_limit_decision.allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many search requests. Please wait and try again.",
+                headers={"Retry-After": str(rate_limit_decision.retry_after_seconds)},
+            )
+        limiter.record_attempt(rate_limit_key)
+
+        query = params.q.strip().lstrip("@")
+        pattern = f"%{query}%"
+
+        users = db.scalars(
+            select(User)
+            .where(
+                User.id != current_user.id,
+                or_(
+                    User.username.ilike(pattern),
+                    User.display_name.ilike(pattern),
+                    User.email.ilike(pattern),
+                ),
+            )
+            .order_by(User.display_name.asc())
+            .limit(10)
+        ).all()
+
+        if not users:
+            return []
+
+        friend_ids = _accepted_friend_id_set(db, current_user.id)
+        pending_outgoing = _pending_outgoing_set(db, current_user.id)
+        pending_incoming = _pending_incoming_set(db, current_user.id)
+
+        return [
+            _serialize_friend_user(
+                user,
+                friend_ids=friend_ids,
+                pending_outgoing=pending_outgoing,
+                pending_incoming=pending_incoming,
+            )
+            for user in users
+        ]
 
     @app.get("/api/friends/list", response_model=list[FriendUser])
     def list_friends(
