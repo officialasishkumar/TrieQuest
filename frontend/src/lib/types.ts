@@ -104,9 +104,21 @@ export type GlobalStatsResponse = {
   activeMembers: number;
 };
 
+export type PlatformDifficultyItem = {
+  tier: string;
+  count: number;
+  percent: number;
+};
+
+export type PlatformDifficultyGroup = {
+  platform: string;
+  items: PlatformDifficultyItem[];
+};
+
 export type Analytics = {
   stats: StatPoint[];
   difficultyDistribution: DistributionPoint[];
+  platformDifficulty: PlatformDifficultyGroup[];
   platformLoyalty: PlatformPoint[];
   weeklyActivity: DailyPoint[];
   monthlyTrend: MonthlyPoint[];

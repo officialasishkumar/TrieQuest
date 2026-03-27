@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlatformBadge } from "@/components/PlatformBadge";
 import { ProblemThumbnail } from "@/components/ProblemThumbnail";
+import { getDifficultyColor, hexToRgba } from "@/lib/difficulty-colors";
 import { formatRelativeTime } from "@/lib/format";
 import type { Problem } from "@/lib/types";
 
@@ -105,7 +106,13 @@ export const ProblemDetailsModal = ({ problem, onClose }: ProblemDetailsModalPro
             <div className="flex min-w-0 flex-1 flex-col sm:pb-2">
               <div className="mb-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 <PlatformBadge url={problem.url} size="md" />
-                <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-widest"
+                  style={{
+                    backgroundColor: hexToRgba(getDifficultyColor(problem.platform, problem.difficulty), 0.15),
+                    color: getDifficultyColor(problem.platform, problem.difficulty),
+                  }}
+                >
                   <Trophy className="w-3.5 h-3.5" />
                   {problem.difficulty}
                 </span>

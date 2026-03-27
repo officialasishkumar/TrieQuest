@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  DifficultyDistribution,
   MonthlyVolumeChart,
+  PlatformDifficultyBreakdown,
   PlatformLoyalty,
   StatCard,
   WeeklyActivity,
@@ -114,7 +114,7 @@ const AnalyticsPage = () => {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty Mix</h2>
+              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty</h2>
               <div className="h-px flex-1 bg-border/40" />
             </div>
             <motion.div
@@ -123,7 +123,7 @@ const AnalyticsPage = () => {
               transition={{ delay: 0.2 }}
               className="p-6 rounded-2xl bg-card border shadow-sm"
             >
-              <DifficultyDistribution data={analytics?.difficultyDistribution ?? []} />
+              <PlatformDifficultyBreakdown data={analytics?.platformDifficulty ?? []} />
             </motion.div>
           </div>
 

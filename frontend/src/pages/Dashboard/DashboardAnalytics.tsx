@@ -1,4 +1,4 @@
-import { DifficultyDistribution, PlatformLoyalty, StatCard, WeeklyActivity } from "@/components/AnalyticsCharts";
+import { PlatformDifficultyBreakdown, PlatformLoyalty, StatCard, WeeklyActivity } from "@/components/AnalyticsCharts";
 import type { Analytics } from "@/lib/types";
 
 type DashboardAnalyticsProps = {
@@ -44,11 +44,11 @@ export const DashboardAnalytics = ({
 
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty Mix</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty</h2>
             <div className="h-px flex-1 bg-border/40" />
           </div>
           <div className="p-5 rounded-xl bg-card border shadow-sm">
-            <DifficultyDistribution data={chartData?.difficultyDistribution ?? []} />
+            <PlatformDifficultyBreakdown data={chartData?.platformDifficulty ?? []} />
           </div>
         </div>
 

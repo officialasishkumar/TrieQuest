@@ -4,7 +4,7 @@ import { Check, Edit3 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { DifficultyDistribution, PlatformLoyalty, StatCard } from "@/components/AnalyticsCharts";
+import { PlatformDifficultyBreakdown, PlatformLoyalty, StatCard } from "@/components/AnalyticsCharts";
 import { AvatarPickerModal } from "@/components/AvatarPickerModal";
 import { ProfileInfo } from "@/components/ProfileInfo";
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,7 @@ const ProfilePage = () => {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty Mix</h2>
+              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Difficulty</h2>
               <div className="h-px flex-1 bg-border/40" />
             </div>
             <motion.div
@@ -156,7 +156,7 @@ const ProfilePage = () => {
               transition={{ delay: 0.3 }}
               className="p-6 rounded-2xl bg-card border shadow-sm"
             >
-              <DifficultyDistribution data={analyticsQuery.data?.difficultyDistribution ?? []} />
+              <PlatformDifficultyBreakdown data={analyticsQuery.data?.platformDifficulty ?? []} />
             </motion.div>
           </div>
 

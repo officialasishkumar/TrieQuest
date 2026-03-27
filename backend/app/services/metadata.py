@@ -84,56 +84,56 @@ PROBLEM_CATALOG: dict[tuple[str, str], dict[str, str | int | None]] = {
         "title": "Watermelon",
         "contest": "Codeforces Beta Round 4",
         "tags": "math,bruteforce",
-        "difficulty": "Easy",
+        "difficulty": "800",
         "solved_by_count": 514287,
     },
     (ProblemPlatform.CODEFORCES, "158A"): {
         "title": "Next Round",
         "contest": "Codeforces Beta Round 158",
         "tags": "implementation,sorting",
-        "difficulty": "Easy",
+        "difficulty": "800",
         "solved_by_count": 482119,
     },
     (ProblemPlatform.CODEFORCES, "71A"): {
         "title": "Way Too Long Words",
         "contest": "Codeforces Beta Round 71",
         "tags": "strings,implementation",
-        "difficulty": "Easy",
+        "difficulty": "800",
         "solved_by_count": 662904,
     },
     (ProblemPlatform.CODECHEF, "FLOW001"): {
         "title": "Add Two Numbers",
         "contest": "CodeChef Practice",
         "tags": "implementation,ad-hoc",
-        "difficulty": "Easy",
+        "difficulty": "1\u2605",
         "solved_by_count": 371104,
     },
     (ProblemPlatform.CODECHEF, "START01"): {
         "title": "Number Mirror",
         "contest": "CodeChef Beginner",
         "tags": "basics,io",
-        "difficulty": "Easy",
+        "difficulty": "1\u2605",
         "solved_by_count": 294417,
     },
     (ProblemPlatform.CODECHEF, "HS08TEST"): {
         "title": "ATM",
         "contest": "CodeChef Practice",
         "tags": "math,implementation",
-        "difficulty": "Easy",
+        "difficulty": "1\u2605",
         "solved_by_count": 285554,
     },
     (ProblemPlatform.ATCODER, "dp_a"): {
         "title": "Frog 1",
         "contest": "Educational DP Contest",
         "tags": "dynamic-programming",
-        "difficulty": "Easy",
+        "difficulty": "Gray",
         "solved_by_count": 241221,
     },
     (ProblemPlatform.ATCODER, "abc085_c"): {
         "title": "Otoshidama",
         "contest": "AtCoder Beginner Contest 085",
         "tags": "bruteforce,math",
-        "difficulty": "Medium",
+        "difficulty": "Green",
         "solved_by_count": 183100,
     },
     (ProblemPlatform.HACKERRANK, "ctci-array-left-rotation"): {
@@ -296,16 +296,23 @@ def _build_fallback_entry(platform: str, problem_id: str | None, canonical_url: 
         ProblemPlatform.CODER: "Coder Challenge Track",
     }[platform]
 
-    default_difficulty = {
-        ProblemPlatform.LEETCODE: "Medium",
-        ProblemPlatform.CODEFORCES: "Medium",
-        ProblemPlatform.CODECHEF: "Easy",
-        ProblemPlatform.ATCODER: "Medium",
-        ProblemPlatform.HACKERRANK: "Medium",
-        ProblemPlatform.TOPCODER: "Medium",
-        ProblemPlatform.GEEKSFORGEEKS: "Medium",
-        ProblemPlatform.CODER: "Medium",
-    }[platform]
+    if platform == ProblemPlatform.CODEFORCES:
+        cf_ratings = [800, 1000, 1200, 1400, 1600, 1800, 2100, 2400]
+        default_difficulty = str(cf_ratings[abs(hash(f"{platform}:{raw_slug}")) % len(cf_ratings)])
+    elif platform == ProblemPlatform.CODECHEF:
+        cc_stars = ["1\u2605", "2\u2605", "3\u2605", "4\u2605", "5\u2605"]
+        default_difficulty = cc_stars[abs(hash(f"{platform}:{raw_slug}")) % len(cc_stars)]
+    elif platform == ProblemPlatform.ATCODER:
+        ac_tiers = ["Gray", "Brown", "Green", "Cyan", "Blue", "Yellow"]
+        default_difficulty = ac_tiers[abs(hash(f"{platform}:{raw_slug}")) % len(ac_tiers)]
+    else:
+        default_difficulty = {
+            ProblemPlatform.LEETCODE: "Medium",
+            ProblemPlatform.HACKERRANK: "Medium",
+            ProblemPlatform.TOPCODER: "Medium",
+            ProblemPlatform.GEEKSFORGEEKS: "Medium",
+            ProblemPlatform.CODER: "Medium",
+        }.get(platform, "Medium")
 
     tags = {
         ProblemPlatform.LEETCODE: "algorithms,data-structures",

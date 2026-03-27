@@ -10,11 +10,55 @@ from app.schemas import (
     DistributionPoint,
     MemberLeaderboardEntry,
     MonthlyPoint,
+    PlatformDifficultyGroup,
+    PlatformDifficultyItem,
     PlatformPoint,
     StatPoint,
     TopProblemEntry,
 )
 from app.services.metadata import PLATFORM_LABELS
+
+
+CF_TIER_ORDER = ["Newbie", "Pupil", "Specialist", "Expert", "Candidate Master", "Master", "Grandmaster"]
+CC_TIER_ORDER = ["1\u2605", "2\u2605", "3\u2605", "4\u2605", "5\u2605", "6\u2605", "7\u2605"]
+ATCODER_TIER_ORDER = ["Gray", "Brown", "Green", "Cyan", "Blue", "Yellow", "Orange", "Red"]
+LC_TIER_ORDER = ["Easy", "Medium", "Hard"]
+
+
+def _cf_tier(difficulty: str) -> str:
+    try:
+        rating = int(difficulty)
+    except (ValueError, TypeError):
+        return difficulty
+    if rating < 1200:
+        return "Newbie"
+    if rating < 1400:
+        return "Pupil"
+    if rating < 1600:
+        return "Specialist"
+    if rating < 1900:
+        return "Expert"
+    if rating < 2100:
+        return "Candidate Master"
+    if rating < 2400:
+        return "Master"
+    return "Grandmaster"
+
+
+def _tier_for_platform(platform: str, difficulty: str) -> str:
+    if platform == "codeforces":
+        return _cf_tier(difficulty)
+    return difficulty
+
+
+def _tier_order_for_platform(platform: str) -> list[str] | None:
+    orders: dict[str, list[str]] = {
+        "codeforces": CF_TIER_ORDER,
+        "codechef": CC_TIER_ORDER,
+        "atcoder": ATCODER_TIER_ORDER,
+        "leetcode": LC_TIER_ORDER,
+    }
+    return orders.get(platform)
 
 
 WINDOW_MAP = {
@@ -63,6 +107,8 @@ def build_analytics(problems: list[ProblemShare]) -> AnalyticsResponse:
             difficulty_distribution.append(
                 DistributionPoint(name=difficulty, value=round((count / total_problems) * 100))
             )
+
+    platform_difficulty = _build_platform_difficulty(problems)
 
     platform_loyalty = [
         PlatformPoint(name=PLATFORM_LABELS.get(platform, platform.title()), problems=count)
@@ -117,12 +163,47 @@ def build_analytics(problems: list[ProblemShare]) -> AnalyticsResponse:
     return AnalyticsResponse(
         stats=stats,
         difficulty_distribution=difficulty_distribution,
+        platform_difficulty=platform_difficulty,
         platform_loyalty=platform_loyalty,
         weekly_activity=weekly_activity,
         monthly_trend=monthly_trend,
         member_leaderboard=member_leaderboard,
         top_problems=top_problems,
     )
+
+
+def _build_platform_difficulty(problems: list[ProblemShare]) -> list[PlatformDifficultyGroup]:
+    platform_groups: dict[str, list[ProblemShare]] = defaultdict(list)
+    for problem in problems:
+        platform_groups[problem.platform].append(problem)
+
+    result: list[PlatformDifficultyGroup] = []
+    for platform, group_problems in sorted(platform_groups.items(), key=lambda x: len(x[1]), reverse=True):
+        tier_counts: Counter[str] = Counter()
+        for problem in group_problems:
+            tier = _tier_for_platform(platform, problem.difficulty or "Unknown")
+            tier_counts[tier] += 1
+
+        total = len(group_problems)
+        tier_order = _tier_order_for_platform(platform)
+
+        if tier_order:
+            ordered_tiers = [(t, tier_counts[t]) for t in tier_order if tier_counts[t] > 0]
+            remaining = [(t, c) for t, c in tier_counts.items() if t not in tier_order and c > 0]
+            ordered_tiers.extend(sorted(remaining, key=lambda x: x[1], reverse=True))
+        else:
+            ordered_tiers = tier_counts.most_common()
+
+        items = [
+            PlatformDifficultyItem(tier=tier, count=count, percent=round((count / total) * 100))
+            for tier, count in ordered_tiers
+        ]
+        result.append(PlatformDifficultyGroup(
+            platform=PLATFORM_LABELS.get(platform, platform.title()),
+            items=items,
+        ))
+
+    return result
 
 
 def normalize_value(value: str) -> str:

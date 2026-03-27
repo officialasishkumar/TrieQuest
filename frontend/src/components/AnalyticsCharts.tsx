@@ -14,7 +14,8 @@ import {
 } from "recharts";
 
 import { PlatformMark } from "@/components/icons/PlatformIcons";
-import type { DailyPoint, DistributionPoint, MonthlyPoint, PlatformPoint } from "@/lib/types";
+import { getTierColor } from "@/lib/difficulty-colors";
+import type { DailyPoint, DistributionPoint, MonthlyPoint, PlatformDifficultyGroup, PlatformPoint } from "@/lib/types";
 
 const chartColors = [
   "hsl(221.2, 83.2%, 53.3%)",
@@ -78,6 +79,73 @@ export const DifficultyDistribution = ({ data }: { data: DistributionPoint[] }) 
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+};
+
+export const PlatformDifficultyBreakdown = ({ data }: { data: PlatformDifficultyGroup[] }) => {
+  if (!data.length) {
+    return (
+      <div>
+        <h3 className="text-sm font-semibold tracking-tight text-foreground mb-3">Difficulty Analytics</h3>
+        <div className="text-sm text-muted-foreground">No problems available yet.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold tracking-tight text-foreground mb-4">Difficulty Analytics</h3>
+      <div className="space-y-4">
+        {data.map((group) => {
+          const total = group.items.reduce((sum, i) => sum + i.count, 0);
+          return (
+            <div key={group.platform}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <PlatformMark source={group.platform} className="h-3.5 w-3.5" decorative />
+                <span className="text-xs font-medium text-foreground">{group.platform}</span>
+                <span className="text-[10px] text-muted-foreground/60 ml-auto font-mono tabular-nums">
+                  {total}
+                </span>
+              </div>
+              <div className="flex h-2 rounded-full overflow-hidden bg-secondary gap-px">
+                {group.items.map((item) => (
+                  <div
+                    key={item.tier}
+                    className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-500"
+                    style={{
+                      width: `${item.percent}%`,
+                      minWidth: item.percent > 0 ? "4px" : "0",
+                      backgroundColor: getTierColor(group.platform, item.tier),
+                    }}
+                    title={`${item.tier}: ${item.count} (${item.percent}%)`}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                {group.items.map((item) => {
+                  const color = getTierColor(group.platform, item.tier);
+                  return (
+                    <div key={item.tier} className="flex items-center gap-1">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{item.tier}</span>
+                      <span
+                        className="text-[10px] font-mono tabular-nums font-semibold"
+                        style={{ color }}
+                      >
+                        {item.count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

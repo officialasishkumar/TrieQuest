@@ -268,9 +268,21 @@ class GlobalStatsResponse(APIModel):
     active_members: int
 
 
+class PlatformDifficultyItem(APIModel):
+    tier: str
+    count: int
+    percent: int
+
+
+class PlatformDifficultyGroup(APIModel):
+    platform: str
+    items: list[PlatformDifficultyItem]
+
+
 class AnalyticsResponse(APIModel):
     stats: list[StatPoint]
     difficulty_distribution: list[DistributionPoint]
+    platform_difficulty: list[PlatformDifficultyGroup]
     platform_loyalty: list[PlatformPoint]
     weekly_activity: list[DailyPoint]
     monthly_trend: list[MonthlyPoint]

@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { ProblemThumbnail } from "./ProblemThumbnail";
+import { getDifficultyColor, hexToRgba } from "@/lib/difficulty-colors";
 import { formatRelativeTime } from "@/lib/format";
 import type { Problem } from "@/lib/types";
 
@@ -44,7 +45,13 @@ export const ProblemCard = ({ problem, index = 0, onClick, onDelete }: ProblemCa
             onDelete ? "group-hover:opacity-0 group-focus-visible:opacity-0" : ""
           }`}
         >
-          <span className="hidden sm:inline-flex text-xs font-mono px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">
+          <span
+            className="hidden sm:inline-flex text-xs font-mono font-semibold px-2 py-0.5 rounded-md"
+            style={{
+              backgroundColor: hexToRgba(getDifficultyColor(problem.platform, problem.difficulty), 0.15),
+              color: getDifficultyColor(problem.platform, problem.difficulty),
+            }}
+          >
             {problem.difficulty}
           </span>
 
