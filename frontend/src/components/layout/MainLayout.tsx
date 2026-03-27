@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Bell, Building2, Code2, LogOut, Moon, Plus, Search, Sun, UserCircle, UserPlus, Users } from "lucide-react";
+import { BarChart3, Building2, Code2, LogOut, Moon, Plus, Sun, UserCircle, Users } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -86,31 +86,15 @@ export const MainLayout = () => {
             <Button
               variant="ghost"
               size="sm"
-              className={`h-9 w-9 p-0 relative ${friendsManagerTab === "requests" ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => setFriendsManagerTab("requests")}
+              className={`h-9 w-9 p-0 relative ${friendsManagerTab ? "bg-accent text-accent-foreground" : ""}`}
+              onClick={() => setFriendsManagerTab(pendingRequestCount > 0 ? "requests" : "friends")}
             >
-              <Bell className="w-5 h-5" />
+              <Users className="w-4.5 h-4.5" />
               {pendingRequestCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                   {pendingRequestCount}
                 </span>
               )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${friendsManagerTab === "friends" ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => setFriendsManagerTab("friends")}
-            >
-              <Users className="w-4.5 h-4.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${friendsManagerTab === "search" ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => setFriendsManagerTab("search")}
-            >
-              <UserPlus className="w-4.5 h-4.5" />
             </Button>
             <Button
               variant="ghost"
