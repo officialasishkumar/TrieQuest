@@ -19,7 +19,6 @@ export const TopContributors = ({ data }: { data: MemberLeaderboardEntry[] }) =>
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-foreground block truncate">{member.name}</span>
-                <span className="text-xs text-muted-foreground">{member.topDifficulty} specialist</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-mono font-bold text-foreground block">{member.problems}</span>
