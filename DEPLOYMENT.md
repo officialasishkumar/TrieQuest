@@ -1,6 +1,6 @@
 # Secure VM Deployment
 
-This repo is already containerized. The production path in [`compose.yaml`](/Users/asish/coding/projects/TrieQuest/compose.yaml) is now:
+This repo is already containerized. The production path in [`compose.yaml`](./compose.yaml) is now:
 
 - `mysql`: persistent MySQL 8.4 volume for all application data
 - `backend`: FastAPI API, internal-only on the Docker network
@@ -28,15 +28,34 @@ Yes, in practice you should use a public HTTPS URL for the backend.
 
 ## Important frontend note
 
-Your frontend is build-time configured for the API base URL in [`frontend/src/lib/api.ts`](/Users/asish/coding/projects/TrieQuest/frontend/src/lib/api.ts#L14).
+Your frontend is build-time configured for the API base URL in [`frontend/src/lib/api.ts`](./frontend/src/lib/api.ts).
 
 - If the deployed frontend was built with `VITE_API_BASE_URL=/api`, it expects the backend on the same public origin and path.
 - If the frontend is deployed separately, rebuild and redeploy it with `VITE_API_BASE_URL=https://your-backend-hostname`.
-- If the frontend is on Vercel, the current [`frontend/vercel.json`](/Users/asish/coding/projects/TrieQuest/frontend/vercel.json#L1) does not proxy `/api` to your VM, so an absolute backend URL is the correct setup.
+- If the frontend is on Vercel, the current [`frontend/vercel.json`](./frontend/vercel.json) proxies `/api/*` to `https://triequest-api.duckdns.org/api/*` after you redeploy the frontend.
+- An absolute backend URL is still valid, and the current [`frontend/.env.production`](./frontend/.env.production) is set to `https://triequest-api.duckdns.org`.
+
+## Current deployment values
+
+For the current TrieQuest deployment:
+
+- Frontend origin: `https://trie-quest.vercel.app`
+- Backend hostname: `triequest-api.duckdns.org`
+
+Use these exact non-secret values:
+
+```dotenv
+TRIEQUEST_PUBLIC_HOSTNAME=triequest-api.duckdns.org
+TRIEQUEST_CORS_ORIGINS=https://trie-quest.vercel.app
+TRIEQUEST_ALLOWED_HOSTS=triequest-api.duckdns.org,127.0.0.1,localhost,backend
+VITE_API_BASE_URL=https://triequest-api.duckdns.org
+```
+
+`TRIEQUEST_ACME_EMAIL` still needs to be set to a real email address on the VM before starting Caddy so Let's Encrypt notices go to you.
 
 ## Required environment variables
 
-Copy [`.env.example`](/Users/asish/coding/projects/TrieQuest/.env.example) to `.env` on the VM and replace every placeholder.
+Copy [`.env.example`](./.env.example) to `.env` on the VM and replace every placeholder.
 
 Required:
 
@@ -70,7 +89,7 @@ Usually leave these as-is unless you know you need different values:
 3. Block public access to `3306` and `8000`.
 4. Point your backend DNS name to the VM's public IP.
 5. Put the repo on the VM.
-6. Create `.env` from [`.env.example`](/Users/asish/coding/projects/TrieQuest/.env.example).
+6. Create `.env` from [`.env.example`](./.env.example).
 7. Start the stack:
 
 ```bash
@@ -81,6 +100,35 @@ docker compose up -d --build
 
 ```bash
 curl https://YOUR_BACKEND_HOSTNAME/api/health
+```
+
+If your VM is on a private LAN address such as `192.168.x.x` or `10.x.x.x`, the DNS record will usually point to your router's public IP instead of the VM directly. In that case you must also forward `80/tcp` and `443/tcp` from the router to the VM's private IP before Let's Encrypt and browsers can reach Caddy.
+
+## Shared VM mode with host Caddy
+
+If this VM already runs other sites or you want one reverse proxy for multiple projects, keep the host Caddy service on `80/443` and run TrieQuest behind it on localhost only. This is the safer option for a shared development VM because TrieQuest does not need to own the machine's public ports directly.
+
+In this repo, use [`compose.host-caddy.yaml`](./compose.host-caddy.yaml) with the main compose file:
+
+```bash
+docker compose -f compose.yaml -f compose.host-caddy.yaml up -d --build
+```
+
+That mode does two things:
+
+- publishes the TrieQuest backend only on `127.0.0.1:${TRIEQUEST_BACKEND_BIND_PORT:-18000}`
+- disables the repo's `caddy` service unless you explicitly opt into the `repo-caddy` profile
+
+The matching host Caddy example is in [`deploy/Caddyfile.shared-vm`](./deploy/Caddyfile.shared-vm). For the current deployment values, the reverse proxy target should stay `127.0.0.1:18000` and the hostname should stay `triequest-api.duckdns.org`.
+
+If the VM itself only has a private address on your LAN, the shared-VM mode still requires router port forwarding for `80/tcp` and `443/tcp` to that VM.
+
+To persist the host Caddy config, install that file as `/etc/caddy/Caddyfile`, replace the placeholder email with your real ACME email, and reload the system Caddy service:
+
+```bash
+sudo cp deploy/Caddyfile.shared-vm /etc/caddy/Caddyfile
+sudo sed -i 's/you@example.com/YOUR_REAL_EMAIL@example.com/' /etc/caddy/Caddyfile
+sudo systemctl reload caddy
 ```
 
 ## Secret generation
@@ -121,6 +169,6 @@ sudo systemctl restart docker
 
 ## Current limitations you should know
 
-- Auth uses bearer JWTs stored in browser `localStorage` in [`frontend/src/lib/api.ts`](/Users/asish/coding/projects/TrieQuest/frontend/src/lib/api.ts#L79). That means an XSS bug in the frontend could expose tokens.
+- Auth uses bearer JWTs stored in browser `localStorage` in [`frontend/src/lib/api.ts`](./frontend/src/lib/api.ts). That means an XSS bug in the frontend could expose tokens.
 - Rate limiting is currently in-memory in the backend, so it resets when the backend restarts and is strongest when `TRIEQUEST_WEB_CONCURRENCY=1`.
 - If you later need higher traffic or stronger abuse protection, move rate limiting to Redis before increasing worker count.
