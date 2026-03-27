@@ -64,7 +64,7 @@ const ChallengesPage = () => {
 
   return (
     <div className="flex flex-1 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-secondary/20 w-full">
-      <div className="w-full max-w-3xl mx-auto px-6 pt-10 pb-16 space-y-8">
+      <div className="w-full max-w-5xl mx-auto px-6 pt-10 pb-16 space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground leading-none mb-1 block">
@@ -210,7 +210,7 @@ const CreateChallenge = ({
 
   return (
     <div className="flex flex-1 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-secondary/20 w-full">
-      <div className="w-full max-w-2xl mx-auto px-6 pt-10 pb-16 space-y-6">
+      <div className="w-full max-w-5xl mx-auto px-6 pt-10 pb-16 space-y-6">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-4 h-4" />
           Back
@@ -425,7 +425,7 @@ const ChallengeDetail = ({
 
   return (
     <div className="flex flex-1 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-secondary/20 w-full">
-      <div className="w-full max-w-3xl mx-auto px-6 pt-10 pb-16 space-y-6">
+      <div className="w-full max-w-5xl mx-auto px-6 pt-10 pb-16 space-y-6">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ChevronLeft className="w-4 h-4" />
           All Challenges

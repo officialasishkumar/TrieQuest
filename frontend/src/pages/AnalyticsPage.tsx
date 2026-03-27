@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -10,12 +10,14 @@ import {
   StatCard,
   WeeklyActivity,
 } from "@/components/AnalyticsCharts";
+import { ProblemsListModal } from "@/components/ProblemsListModal";
 import { api } from "@/lib/api";
 import { MostPopularProblems, TopContributors } from "./Analytics/Leaderboards";
 
 const AnalyticsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [timeFilter, setTimeFilter] = useState("30d");
+  const [showProblems, setShowProblems] = useState(false);
 
   const groupsQuery = useQuery({
     queryKey: ["groups"],
@@ -74,7 +76,13 @@ const AnalyticsPage = () => {
           </div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {(analytics?.stats ?? []).map((stat) => (
-              <StatCard key={stat.label} label={stat.label} value={stat.value} change={stat.change ?? undefined} />
+              <StatCard
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                change={stat.change ?? undefined}
+                onClick={stat.label === "Total problems" ? () => setShowProblems(true) : undefined}
+              />
             ))}
           </motion.div>
         </section>
@@ -148,6 +156,17 @@ const AnalyticsPage = () => {
           <MostPopularProblems data={analytics?.topProblems ?? []} />
         </section>
       </div>
+
+      <AnimatePresence>
+        {showProblems && selectedGroup && (
+          <ProblemsListModal
+            title={`${selectedGroup.name} — All Problems`}
+            queryKey={["groupProblems", selectedGroup.id]}
+            queryFn={() => api.listGroupProblems(selectedGroup.id)}
+            onClose={() => setShowProblems(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

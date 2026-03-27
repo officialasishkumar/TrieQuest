@@ -238,8 +238,14 @@ export const WeeklyActivity = ({ data }: { data: DailyPoint[] }) => {
   );
 };
 
-export const StatCard = ({ label, value, change }: { label: string; value: string; change?: string }) => (
-  <div className="p-3 rounded-lg bg-card shadow-card">
+export const StatCard = ({ label, value, change, onClick }: { label: string; value: string; change?: string; onClick?: () => void }) => (
+  <div
+    className={`p-3 rounded-lg bg-card shadow-card ${onClick ? "cursor-pointer hover:bg-secondary/60 transition-colors" : ""}`}
+    onClick={onClick}
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+  >
     <span className="text-xs text-muted-foreground">{label}</span>
     <div className="flex items-baseline gap-2 mt-1">
       <span className="text-xl font-semibold tracking-tight text-foreground font-mono tabular-nums">{value}</span>

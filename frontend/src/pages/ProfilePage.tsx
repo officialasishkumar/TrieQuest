@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check, Edit3 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PlatformDifficultyBreakdown, PlatformLoyalty, StatCard } from "@/components/AnalyticsCharts";
 import { AvatarPickerModal } from "@/components/AvatarPickerModal";
 import { ProfileInfo } from "@/components/ProfileInfo";
+import { ProblemsListModal } from "@/components/ProblemsListModal";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +17,7 @@ const ProfilePage = () => {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showProblems, setShowProblems] = useState(false);
 
   const [profileData, setProfileData] = useState({
     displayName: "",
@@ -138,7 +140,13 @@ const ProfilePage = () => {
               className="grid grid-cols-2 lg:grid-cols-4 gap-4"
             >
               {stats.map((stat) => (
-                <StatCard key={stat.label} label={stat.label} value={stat.value} change={stat.change ?? undefined} />
+                <StatCard
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  change={stat.change ?? undefined}
+                  onClick={stat.label === "Total problems" ? () => setShowProblems(true) : undefined}
+                />
               ))}
             </motion.div>
           </section>
@@ -178,6 +186,16 @@ const ProfilePage = () => {
       </div>
 
       <AvatarPickerModal isOpen={showAvatarPicker} onClose={() => setShowAvatarPicker(false)} onSelect={handleAvatarSelect} />
+      <AnimatePresence>
+        {showProblems && (
+          <ProblemsListModal
+            title="All Problems"
+            queryKey={["problemsFeed"]}
+            queryFn={api.getProblemsFeed}
+            onClose={() => setShowProblems(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
