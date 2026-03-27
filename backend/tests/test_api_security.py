@@ -75,3 +75,20 @@ def test_login_rate_limiting_and_security_headers(monkeypatch) -> None:
     assert blocked_response.status_code == 429
     retry_after = int(blocked_response.headers["retry-after"])
     assert 1 <= retry_after <= 300
+
+
+def test_docs_can_be_disabled(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    monkeypatch.setenv("TRIEQUEST_ENABLE_DOCS", "false")
+    get_settings.cache_clear()
+
+    try:
+        app = main_module.create_app()
+
+        with TestClient(app) as client:
+            response = client.get("/docs")
+
+        assert response.status_code == 404
+    finally:
+        get_settings.cache_clear()

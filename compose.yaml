@@ -1,6 +1,10 @@
 services:
   mysql:
     image: mysql:8.4@sha256:be18eb9dc45eea9b86cb74f8c68ab92ce8569ecc37ea4e6fade02e37036c5ff4
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-name-resolve
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-triequest}
       MYSQL_USER: ${MYSQL_USER:-triequest}
@@ -15,6 +19,8 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    networks:
+      - app
 
   backend:
     build:
@@ -23,16 +29,20 @@ services:
       TRIEQUEST_ENVIRONMENT: production
       TRIEQUEST_SECRET_KEY: ${TRIEQUEST_SECRET_KEY:?set TRIEQUEST_SECRET_KEY in your environment or .env file}
       TRIEQUEST_DATABASE_URL: mysql+pymysql://${MYSQL_USER:-triequest}:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}@mysql:3306/${MYSQL_DATABASE:-triequest}?charset=utf8mb4
-      TRIEQUEST_CORS_ORIGINS: ${TRIEQUEST_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
-      TRIEQUEST_ALLOWED_HOSTS: ${TRIEQUEST_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      TRIEQUEST_DATABASE_AUTO_MIGRATE: ${TRIEQUEST_DATABASE_AUTO_MIGRATE:-true}
+      TRIEQUEST_CORS_ORIGINS: ${TRIEQUEST_CORS_ORIGINS:?set TRIEQUEST_CORS_ORIGINS in your environment or .env file}
+      TRIEQUEST_ALLOWED_HOSTS: ${TRIEQUEST_ALLOWED_HOSTS:?set TRIEQUEST_ALLOWED_HOSTS in your environment or .env file}
       TRIEQUEST_SEED_DEMO_DATA: ${TRIEQUEST_SEED_DEMO_DATA:-false}
       TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS: ${TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS:-5}
       TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS:-300}
-      TRIEQUEST_FORWARDED_ALLOW_IPS: ${TRIEQUEST_FORWARDED_ALLOW_IPS:-}
+      TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS:-20}
+      TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS:-60}
+      TRIEQUEST_FORWARDED_ALLOW_IPS: ${TRIEQUEST_FORWARDED_ALLOW_IPS:-*}
       TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START: "false"
-      TRIEQUEST_WEB_CONCURRENCY: ${TRIEQUEST_WEB_CONCURRENCY:-2}
-    ports:
-      - "8000:8000"
+      TRIEQUEST_ENABLE_DOCS: ${TRIEQUEST_ENABLE_DOCS:-false}
+      TRIEQUEST_WEB_CONCURRENCY: ${TRIEQUEST_WEB_CONCURRENCY:-1}
+    expose:
+      - "8000"
     depends_on:
       mysql:
         condition: service_healthy
@@ -49,8 +59,32 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    networks:
+      - app
+
+  caddy:
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      TRIEQUEST_PUBLIC_HOSTNAME: ${TRIEQUEST_PUBLIC_HOSTNAME:?set TRIEQUEST_PUBLIC_HOSTNAME in your environment or .env file}
+      TRIEQUEST_ACME_EMAIL: ${TRIEQUEST_ACME_EMAIL:?set TRIEQUEST_ACME_EMAIL in your environment or .env file}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    networks:
+      - public
+      - app
 
   frontend:
+    profiles:
+      - frontend
     build:
       context: ./frontend
       args:
@@ -61,6 +95,15 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - app
 
 volumes:
   mysql_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  app:
+    internal: true
+  public:

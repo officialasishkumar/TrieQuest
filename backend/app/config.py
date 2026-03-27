@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     token_issuer: str = "triequest-api"
     access_token_expire_minutes: int = 1440
+    enable_docs: bool = True
     cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:8080", "http://127.0.0.1:8080"]
     )

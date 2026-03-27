@@ -55,6 +55,7 @@ cd backend
 - Set `TRIEQUEST_ALLOWED_HOSTS` and `TRIEQUEST_CORS_ORIGINS` for the domains you actually serve.
 - Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
 - Login attempts are rate-limited, JWTs carry issuer and token-type claims, and API responses send defensive security headers.
+- The secure VM deployment path in this repo is documented in `DEPLOYMENT.md`.
 
 To run the container stack:
 
