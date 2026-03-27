@@ -52,3 +52,15 @@ def test_production_settings_require_demo_seeding_to_be_disabled() -> None:
             secret_key="this-is-a-long-enough-secret-for-production",
             seed_demo_data=True,
         )
+
+
+def test_settings_accept_database_ssl_configuration() -> None:
+    settings = Settings(
+        database_ssl_ca_path="/etc/ssl/certs/ca-certificates.crt",
+        database_ssl_verify_cert=True,
+        database_ssl_verify_identity=True,
+    )
+
+    assert settings.database_ssl_ca_path == "/etc/ssl/certs/ca-certificates.crt"
+    assert settings.database_ssl_verify_cert is True
+    assert settings.database_ssl_verify_identity is True

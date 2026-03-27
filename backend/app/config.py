@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     database_pool_size: int = 10
     database_max_overflow: int = 20
     database_pool_recycle_seconds: int = 1800
+    database_ssl_ca_path: str | None = None
+    database_ssl_verify_cert: bool = False
+    database_ssl_verify_identity: bool = False
     secret_key: str = DEFAULT_SECRET_KEY
     algorithm: str = "HS256"
     token_issuer: str = "triequest-api"

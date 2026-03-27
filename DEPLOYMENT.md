@@ -1,126 +1,105 @@
-# Secure VM Deployment
+# Render Deployment
 
-This repo is already containerized. The production path in [`compose.yaml`](/Users/asish/coding/projects/TrieQuest/compose.yaml) is now:
+Current recommended production shape:
 
-- `mysql`: persistent MySQL 8.4 volume for all application data
-- `backend`: FastAPI API, internal-only on the Docker network
-- `caddy`: public reverse proxy on ports `80` and `443` with automatic HTTPS
+- frontend on Vercel
+- backend on Render
+- MySQL-compatible database on TiDB Cloud Starter
 
-The optional `frontend` service is still available behind the `frontend` profile, but it is not started by default because your main production need is the backend.
+This avoids self-hosting the API on a VM and removes the need to expose your company VM to the public internet.
 
-## Recommended hosting shape
+## Why this setup
 
-Host the backend on your existing VM.
+- Render provides the public HTTPS backend URL.
+- TiDB Cloud Starter is MySQL-compatible and works with SQLAlchemy + PyMySQL.
+- Vercel continues to host the frontend separately with `VITE_API_BASE_URL` pointed at the Render backend.
 
-- Keep MySQL and the backend on the same VM inside Docker.
-- Publish only `80` and `443` from the VM.
-- Do not publish MySQL or the FastAPI container directly to the internet.
-- Put a reverse proxy in front of the backend so the public URL is HTTPS.
+Render free web services spin down after 15 minutes without traffic, so the first request after idle can be slow. If you need consistent uptime, move the backend to a paid Render plan.
 
-## Do you need a URL or domain?
+## Backend target
 
-Yes, in practice you should use a public HTTPS URL for the backend.
+Use a Render web service named `triequest-api`.
 
-- If your frontend is already deployed on an HTTPS site, browsers will block calls from that frontend to an insecure `http://` backend.
-- The clean setup is a backend hostname such as `https://api.example.com`.
-- If you already own a domain, create a subdomain like `api.yourdomain.com`.
-- If you want a free option, use a free DNS provider that gives you a stable subdomain and point it to the VM. A simple option is a DuckDNS subdomain, then use that hostname in `TRIEQUEST_PUBLIC_HOSTNAME`.
+- Expected backend URL: `https://triequest-api.onrender.com`
+- Health check: `https://triequest-api.onrender.com/api/health`
 
-## Important frontend note
+This repo includes [`render.yaml`](./render.yaml) for that backend service.
 
-Your frontend is build-time configured for the API base URL in [`frontend/src/lib/api.ts`](/Users/asish/coding/projects/TrieQuest/frontend/src/lib/api.ts#L14).
+## Database target
 
-- If the deployed frontend was built with `VITE_API_BASE_URL=/api`, it expects the backend on the same public origin and path.
-- If the frontend is deployed separately, rebuild and redeploy it with `VITE_API_BASE_URL=https://your-backend-hostname`.
-- If the frontend is on Vercel, the current [`frontend/vercel.json`](/Users/asish/coding/projects/TrieQuest/frontend/vercel.json#L1) does not proxy `/api` to your VM, so an absolute backend URL is the correct setup.
+Use TiDB Cloud Starter.
 
-## Required environment variables
+- TiDB is MySQL-compatible.
+- TiDB Cloud Starter requires TLS.
+- TiDB Cloud Starter closes idle connections after 5 minutes, so this repo sets `TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS=300` for Render.
 
-Copy [`.env.example`](/Users/asish/coding/projects/TrieQuest/.env.example) to `.env` on the VM and replace every placeholder.
+For the Python + SQLAlchemy path, TiDB documents using a CA path plus:
 
-Required:
+- `ssl_verify_cert=True`
+- `ssl_verify_identity=True`
 
-- `MYSQL_PASSWORD`: app database password
-- `MYSQL_ROOT_PASSWORD`: separate MySQL root password
-- `TRIEQUEST_PUBLIC_HOSTNAME`: public backend hostname, for example `api.example.com`
-- `TRIEQUEST_ACME_EMAIL`: email used by Caddy for TLS certificate registration
-- `TRIEQUEST_SECRET_KEY`: at least 32 random characters
-- `TRIEQUEST_CORS_ORIGINS`: your real frontend origin, for example `https://your-frontend.vercel.app`
-- `TRIEQUEST_ALLOWED_HOSTS`: backend hostname plus `127.0.0.1,localhost,backend`
+It also documents configuring a public connection and an IP access list before the first connection.
 
-Usually leave these as-is unless you know you need different values:
+## Render env values
 
-- `TRIEQUEST_DATABASE_AUTO_MIGRATE=true`
-- `TRIEQUEST_SEED_DEMO_DATA=false`
-- `TRIEQUEST_ENABLE_DOCS=false`
-- `TRIEQUEST_WEB_CONCURRENCY=1`
-- `TRIEQUEST_FORWARDED_ALLOW_IPS=*`
-- `TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS=5`
-- `TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS=300`
-- `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS=20`
-- `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS=60`
+Set these on the Render backend service:
 
-## VM setup
-
-1. Install Docker Engine and the Docker Compose plugin.
-2. Open only the ports you need:
-   - `22/tcp` for SSH
-   - `80/tcp` for HTTP to HTTPS certificate/bootstrap traffic
-   - `443/tcp` for HTTPS
-3. Block public access to `3306` and `8000`.
-4. Point your backend DNS name to the VM's public IP.
-5. Put the repo on the VM.
-6. Create `.env` from [`.env.example`](/Users/asish/coding/projects/TrieQuest/.env.example).
-7. Start the stack:
-
-```bash
-docker compose up -d --build
+```dotenv
+TRIEQUEST_ENVIRONMENT=production
+TRIEQUEST_SECRET_KEY=<generate a long random secret>
+TRIEQUEST_DATABASE_URL=mysql+pymysql://USER:PASSWORD@HOST:4000/triequest
+TRIEQUEST_DATABASE_SSL_CA_PATH=/etc/ssl/certs/ca-certificates.crt
+TRIEQUEST_DATABASE_SSL_VERIFY_CERT=true
+TRIEQUEST_DATABASE_SSL_VERIFY_IDENTITY=true
+TRIEQUEST_CORS_ORIGINS=https://trie-quest.vercel.app
+TRIEQUEST_ALLOWED_HOSTS=triequest-api.onrender.com,127.0.0.1,localhost
+TRIEQUEST_DATABASE_AUTO_MIGRATE=true
+TRIEQUEST_SEED_DEMO_DATA=false
+TRIEQUEST_ENABLE_DOCS=false
+TRIEQUEST_WEB_CONCURRENCY=1
+TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS=300
+TRIEQUEST_FORWARDED_ALLOW_IPS=*
 ```
 
-8. Verify the backend:
+If Render gives you a different service hostname, update `TRIEQUEST_ALLOWED_HOSTS` to match it exactly.
 
-```bash
-curl https://YOUR_BACKEND_HOSTNAME/api/health
+## TiDB setup
+
+1. Create a TiDB Cloud Starter cluster.
+2. Open the cluster's connect dialog.
+3. Choose a public connection.
+4. Generate a password.
+5. Copy the host, port, username, password, and database name.
+6. Add Render's outbound IP ranges to TiDB's IP access list.
+7. Build the `TRIEQUEST_DATABASE_URL` from those values.
+
+Render documents where to find outbound IP ranges:
+
+- open the service page
+- click `Connect`
+- open the `Outbound` tab
+
+## Frontend setup
+
+Your Vercel frontend should use:
+
+```dotenv
+VITE_API_BASE_URL=https://triequest-api.onrender.com
 ```
 
-## Secret generation
+The frontend is already build-time configured for an absolute API base URL in [`frontend/src/lib/api.ts`](./frontend/src/lib/api.ts).
 
-Generate strong secrets on the VM:
+## Repo files involved
 
-```bash
-openssl rand -hex 32
-openssl rand -hex 24
-openssl rand -hex 24
-```
+- [`render.yaml`](./render.yaml): Render Blueprint for the backend
+- [`.env.example`](./.env.example): example production env values for Render + TiDB
+- [`backend/start.sh`](./backend/start.sh): now respects Render's `PORT`
 
-Use one value for `TRIEQUEST_SECRET_KEY`, one for `MYSQL_PASSWORD`, and one different value for `MYSQL_ROOT_PASSWORD`.
+## Security notes
 
-## Persistence and restarts
-
-Data persists in the named Docker volume `mysql_data`.
-
-- VM reboot: Docker restart policies bring the containers back.
-- Container restart: the API and MySQL come back automatically.
-- Database data remains because it is stored in the Docker volume, not inside the container filesystem.
-
-For Linux VMs, also make sure Docker itself starts on boot:
-
-```bash
-sudo systemctl enable docker
-sudo systemctl restart docker
-```
-
-## Security baseline in this repo
-
-- The backend only listens on the internal Docker network in production compose.
-- Caddy is the only public-facing container.
-- The backend uses Trusted Host validation and explicit CORS allowlists.
-- API docs are disabled by default in the production compose path.
-- The backend container runs database initialization at startup and now uses Alembic migrations by default in production compose.
-- MySQL data is persisted in a named volume.
-
-## Current limitations you should know
-
-- Auth uses bearer JWTs stored in browser `localStorage` in [`frontend/src/lib/api.ts`](/Users/asish/coding/projects/TrieQuest/frontend/src/lib/api.ts#L79). That means an XSS bug in the frontend could expose tokens.
-- Rate limiting is currently in-memory in the backend, so it resets when the backend restarts and is strongest when `TRIEQUEST_WEB_CONCURRENCY=1`.
-- If you later need higher traffic or stronger abuse protection, move rate limiting to Redis before increasing worker count.
+- The VM-specific reverse proxy path has been removed from the repo.
+- Do not commit TiDB credentials or Render secrets.
+- Keep `TRIEQUEST_ENABLE_DOCS=false` in production.
+- Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
+- Auth tokens are still stored in browser `localStorage`, so frontend XSS remains a meaningful risk.
+- Rate limiting is still in-memory, so it resets on restarts and is strongest with `TRIEQUEST_WEB_CONCURRENCY=1`.

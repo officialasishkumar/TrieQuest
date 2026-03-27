@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: triequest-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: TRIEQUEST_ENVIRONMENT
+        value: production
+      - key: TRIEQUEST_SECRET_KEY
+        generateValue: true
+      - key: TRIEQUEST_DATABASE_URL
+        sync: false
+      - key: TRIEQUEST_DATABASE_SSL_CA_PATH
+        value: /etc/ssl/certs/ca-certificates.crt
+      - key: TRIEQUEST_DATABASE_SSL_VERIFY_CERT
+        value: "true"
+      - key: TRIEQUEST_DATABASE_SSL_VERIFY_IDENTITY
+        value: "true"
+      - key: TRIEQUEST_CORS_ORIGINS
+        value: https://trie-quest.vercel.app
+      - key: TRIEQUEST_ALLOWED_HOSTS
+        value: triequest-api.onrender.com,127.0.0.1,localhost
+      - key: TRIEQUEST_DATABASE_AUTO_MIGRATE
+        value: "true"
+      - key: TRIEQUEST_SEED_DEMO_DATA
+        value: "false"
+      - key: TRIEQUEST_ENABLE_DOCS
+        value: "false"
+      - key: TRIEQUEST_WEB_CONCURRENCY
+        value: "1"
+      - key: TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS
+        value: "300"
+      - key: TRIEQUEST_FORWARDED_ALLOW_IPS
+        value: "*"

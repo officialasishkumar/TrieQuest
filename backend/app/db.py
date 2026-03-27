@@ -16,6 +16,15 @@ engine_kwargs: dict[str, object] = {"future": True, "pool_pre_ping": True}
 if is_sqlite:
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
+    ssl_connect_args: dict[str, object] = {}
+    if settings.database_ssl_ca_path:
+        ssl_connect_args["ssl_ca"] = settings.database_ssl_ca_path
+    if settings.database_ssl_verify_cert:
+        ssl_connect_args["ssl_verify_cert"] = True
+    if settings.database_ssl_verify_identity:
+        ssl_connect_args["ssl_verify_identity"] = True
+    if ssl_connect_args:
+        engine_kwargs["connect_args"] = ssl_connect_args
     engine_kwargs.update(
         pool_size=settings.database_pool_size,
         max_overflow=settings.database_max_overflow,
