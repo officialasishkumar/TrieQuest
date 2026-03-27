@@ -233,20 +233,20 @@ export default function LandingPage3D() {
           >
             <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 backdrop-blur-md">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-              <span className="text-sm font-medium text-white">The social layer for coding progress</span>
+              <span className="text-sm font-medium text-white">Built for competitive programmers</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 text-white leading-tight">
-              Visualize Your
+              Grind Together,
               <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">
-                Problem-Solving Graph
+                Rise Together
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Share problems from LeetCode, Codeforces, CodeChef, AtCoder, and more.
-              Track what your squad is solving, compare practice rhythms, and keep the whole grind visible.
+              Share problems across LeetCode, Codeforces, CodeChef, and AtCoder.
+              Challenge friends, track your squad's progress, and turn practice into a team sport.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
