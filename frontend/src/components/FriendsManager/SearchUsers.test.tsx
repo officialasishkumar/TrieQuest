@@ -1,53 +1,46 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { SearchUsers } from "./SearchUsers";
 
+const baseProps = {
+  searchQuery: "",
+  setSearchQuery: vi.fn(),
+  searchResults: [],
+  isSearching: false as const,
+  searchError: null,
+  hasQuery: false,
+  requests: [],
+  onAddFriend: vi.fn(),
+  onAccept: vi.fn(),
+};
 
 describe("SearchUsers", () => {
-  it("only triggers lookup when the form is submitted", () => {
+  it("calls setSearchQuery when user types in the input", () => {
     const setSearchQuery = vi.fn();
-    const onSearch = vi.fn();
+    render(<SearchUsers {...baseProps} setSearchQuery={setSearchQuery} />);
 
-    const { rerender } = render(
-      <SearchUsers
-        searchQuery=""
-        setSearchQuery={setSearchQuery}
-        searchResults={[]}
-        hasSearched={false}
-        isSearching={false}
-        searchError={null}
-        requests={[]}
-        onSearch={onSearch}
-        onAddFriend={vi.fn()}
-        onAccept={vi.fn()}
-      />
-    );
-
-    fireEvent.change(screen.getByPlaceholderText("Enter full @username"), {
-      target: { value: "bob_smith" },
+    fireEvent.change(screen.getByPlaceholderText(/search by name/i), {
+      target: { value: "alice" },
     });
 
-    expect(setSearchQuery).toHaveBeenCalledWith("bob_smith");
-    expect(onSearch).not.toHaveBeenCalled();
+    expect(setSearchQuery).toHaveBeenCalledWith("alice");
+  });
 
-    rerender(
+  it("shows default prompt when no query has been entered", () => {
+    render(<SearchUsers {...baseProps} hasQuery={false} />);
+    expect(screen.getByText("Search by name, username, or email")).toBeInTheDocument();
+  });
+
+  it("shows no-results message when query is set but results are empty", () => {
+    render(
       <SearchUsers
+        {...baseProps}
         searchQuery="bob_smith"
-        setSearchQuery={setSearchQuery}
+        hasQuery={true}
         searchResults={[]}
-        hasSearched={false}
-        isSearching={false}
-        searchError={null}
-        requests={[]}
-        onSearch={onSearch}
-        onAddFriend={vi.fn()}
-        onAccept={vi.fn()}
       />
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
-
-    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/no users found for/i)).toBeInTheDocument();
   });
 });
