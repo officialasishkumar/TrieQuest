@@ -71,6 +71,7 @@ const ChallengesPage = () => {
               Challenges
             </span>
             <h1 className="text-2xl font-bold tracking-tight">Battle Arena</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Codeforces only</p>
           </div>
           <Button onClick={() => setView("create")} className="rounded-xl gap-2">
             <Plus className="w-4 h-4" />
@@ -218,6 +219,7 @@ const CreateChallenge = ({
         <div>
           <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground block mb-1">New Challenge</span>
           <h1 className="text-2xl font-bold tracking-tight">Set Up Your Battle</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Problems sourced from Codeforces API</p>
         </div>
 
         <div className="space-y-5 p-6 rounded-2xl bg-card border shadow-sm">
