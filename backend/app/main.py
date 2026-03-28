@@ -25,6 +25,7 @@ from app.schemas import (
     FriendSearchQuery,
     FriendUser,
     GlobalStatsResponse,
+    GoogleAuthRequest,
     GroupAddMembersRequest,
     GroupCreateRequest,
     GroupSummary,
@@ -149,7 +150,7 @@ def create_app() -> FastAPI:
             )
 
         user = find_user_by_identifier(db, payload.identifier)
-        if user is None or not verify_password(payload.password, user.password_hash):
+        if user is None or not user.password_hash or not verify_password(payload.password, user.password_hash):
             limiter.record_failure(rate_limit_key)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -157,6 +158,65 @@ def create_app() -> FastAPI:
             )
 
         limiter.clear(rate_limit_key)
+        return _token_response_for_user(user)
+
+    @app.post("/api/auth/google", response_model=TokenResponse)
+    async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)) -> TokenResponse:
+        from app.services.google_oauth import exchange_code_for_user
+
+        try:
+            google_user = await exchange_code_for_user(payload.code)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google authentication failed. Please try again.",
+            )
+
+        user = db.scalar(select(User).where(User.google_id == google_user.google_id))
+        if user is not None:
+            if user.avatar_url and "dicebear" in user.avatar_url and google_user.picture:
+                user.avatar_url = google_user.picture
+                db.commit()
+                db.refresh(user)
+            return _token_response_for_user(user)
+
+        user = db.scalar(select(User).where(func.lower(User.email) == google_user.email.lower()))
+        if user is not None:
+            user.google_id = google_user.google_id
+            user.auth_provider = "google" if not user.password_hash else "both"
+            if user.avatar_url and "dicebear" in user.avatar_url and google_user.picture:
+                user.avatar_url = google_user.picture
+            db.commit()
+            db.refresh(user)
+            return _token_response_for_user(user)
+
+        base_username = google_user.email.split("@")[0].lower()[:24]
+        username = base_username
+        counter = 1
+        while db.scalar(select(User).where(User.username == username)):
+            suffix = str(counter)
+            username = base_username[: 24 - len(suffix)] + suffix
+            counter += 1
+
+        user = User(
+            email=google_user.email.lower(),
+            username=username,
+            display_name=google_user.name,
+            bio="",
+            avatar_url=google_user.picture or f"https://api.dicebear.com/9.x/initials/svg?seed={username}",
+            password_hash=None,
+            google_id=google_user.google_id,
+            auth_provider="google",
+        )
+        db.add(user)
+        db.flush()
+
+        personal_group = Group(name=f"{user.display_name}'s Squad", owner_id=user.id)
+        db.add(personal_group)
+        db.flush()
+        db.add(GroupMembership(group_id=personal_group.id, user_id=user.id, role="owner"))
+        db.commit()
+        db.refresh(user)
         return _token_response_for_user(user)
 
     @app.get("/api/auth/me", response_model=UserSummary)

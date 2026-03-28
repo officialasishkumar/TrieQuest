@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     auth_rate_limit_window_seconds: int = 300
     friend_lookup_rate_limit_max_attempts: int = 20
     friend_lookup_rate_limit_window_seconds: int = 60
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str = "http://localhost:5173/auth/google/callback"
 
     @field_validator("cors_origins", "allowed_hosts", mode="before")
     @classmethod
