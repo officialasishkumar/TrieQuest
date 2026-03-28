@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, Code2, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
+import { BarChart3, Building2, Code2, Compass, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -32,7 +32,14 @@ export const MainLayout = () => {
     refetchInterval: 10000,
   });
 
+  const joinRequestsQuery = useQuery({
+    queryKey: ["joinRequests", "incoming"],
+    queryFn: api.listJoinRequests,
+    refetchInterval: 15000,
+  });
+
   const pendingRequestCount = friendRequestsQuery.data?.length ?? 0;
+  const pendingJoinCount = joinRequestsQuery.data?.length ?? 0;
 
   const createGroupMutation = useMutation({
     mutationFn: ({ name, memberIds }: { name: string; memberIds: number[] }) =>
@@ -93,6 +100,19 @@ export const MainLayout = () => {
               {pendingRequestCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                   {pendingRequestCount}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 relative ${location.pathname.startsWith("/discover") ? "bg-accent text-accent-foreground" : ""}`}
+              onClick={() => navigate("/discover")}
+            >
+              <Compass className="w-4.5 h-4.5" />
+              {pendingJoinCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                  {pendingJoinCount}
                 </span>
               )}
             </Button>

@@ -208,6 +208,28 @@ class GroupSummary(APIModel):
     is_owner: bool = False
 
 
+class TopGroupSummary(APIModel):
+    id: int
+    name: str
+    member_count: int
+    problem_count: int
+    last_active_at: datetime | None
+    owner_username: str
+    join_status: str | None = None
+
+
+class JoinRequestSummary(APIModel):
+    id: int
+    group_id: int
+    group_name: str
+    user_id: int
+    username: str
+    display_name: str
+    avatar_url: str | None = None
+    status: str
+    created_at: datetime
+
+
 class ProblemCreateRequest(APIModel):
     url: str = Field(min_length=8, max_length=1000)
 

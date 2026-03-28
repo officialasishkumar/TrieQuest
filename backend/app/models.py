@@ -113,6 +113,20 @@ class ProblemShare(Base):
     shared_by: Mapped[User] = relationship("User", back_populates="shared_problems")
 
 
+class JoinRequest(Base):
+    __tablename__ = "join_requests"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_join_request"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    group: Mapped[Group] = relationship("Group")
+    user: Mapped[User] = relationship("User")
+
+
 class Challenge(Base):
     __tablename__ = "challenges"
     __table_args__ = (

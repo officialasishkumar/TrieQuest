@@ -14,6 +14,7 @@ from app.models import (
     Friendship,
     Group,
     GroupMembership,
+    JoinRequest,
     ProblemShare,
     User,
 )
@@ -128,6 +129,17 @@ class ProblemShareAdmin(ModelView, model=ProblemShare):
     can_delete = False
 
 
+class JoinRequestAdmin(ModelView, model=JoinRequest):
+    column_list = [JoinRequest.id, JoinRequest.group_id, JoinRequest.user_id, JoinRequest.status, JoinRequest.created_at]
+    column_sortable_list = [JoinRequest.id, JoinRequest.status, JoinRequest.created_at]
+    column_default_sort = ("created_at", True)
+    name = "Join Request"
+    name_plural = "Join Requests"
+    icon = "fa-solid fa-right-to-bracket"
+    can_create = False
+    can_delete = False
+
+
 class ChallengeAdmin(ModelView, model=Challenge):
     column_list = [
         Challenge.id,
@@ -189,6 +201,7 @@ def setup_admin(app, engine) -> Admin:
     admin.add_view(GroupAdmin)
     admin.add_view(GroupMembershipAdmin)
     admin.add_view(ProblemShareAdmin)
+    admin.add_view(JoinRequestAdmin)
     admin.add_view(ChallengeAdmin)
     admin.add_view(ChallengeParticipantAdmin)
     admin.add_view(ChallengeProblemAdmin)
