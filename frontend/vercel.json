@@ -2,6 +2,10 @@
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "rewrites": [
         {
+            "source": "/admin/:path*",
+            "destination": "https://triequest-api.onrender.com/admin/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
