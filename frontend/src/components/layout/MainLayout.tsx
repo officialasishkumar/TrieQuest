@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, Code2, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
+import { BarChart3, BookOpen, Building2, Code2, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -134,6 +134,19 @@ export const MainLayout = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Challenges</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/system-design") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/system-design")}
+                >
+                  <BookOpen className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>System Design</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
