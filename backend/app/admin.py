@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from sqladmin import Admin, ModelView
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
@@ -26,7 +28,7 @@ ADMIN_EMAILS = {"officialasishkumar@gmail.com"}
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
-        email = form.get("username", "")
+        email = form.get("email", form.get("username", ""))
         password = form.get("password", "")
 
         if not email or not password:
@@ -195,7 +197,13 @@ class ChallengeProblemAdmin(ModelView, model=ChallengeProblem):
 def setup_admin(app, engine) -> Admin:
     settings = get_settings()
     auth_backend = AdminAuth(secret_key=settings.secret_key)
-    admin = Admin(app, engine, title="TrieQuest Admin", authentication_backend=auth_backend)
+    admin = Admin(
+        app,
+        engine,
+        title="TrieQuest Admin",
+        templates_dir=str(Path(__file__).resolve().parent / "templates"),
+        authentication_backend=auth_backend,
+    )
     admin.add_view(UserAdmin)
     admin.add_view(FriendshipAdmin)
     admin.add_view(GroupAdmin)
