@@ -6,6 +6,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { CreateGroupModal } from "@/components/CreateGroupModal";
+import { DiscoverModal } from "@/components/DiscoverModal";
 import { FriendsManager } from "@/components/FriendsManager";
 import { Button } from "@/components/ui/button";
 import { useProblemNotifications } from "@/hooks/use-problem-notifications";
@@ -18,6 +19,7 @@ export const MainLayout = () => {
   useProblemNotifications();
 
   const [friendsManagerTab, setFriendsManagerTab] = useState<"friends" | "requests" | "search" | null>(null);
+  const [showDiscover, setShowDiscover] = useState(false);
 
   const { isDark, toggle: toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -106,8 +108,8 @@ export const MainLayout = () => {
             <Button
               variant="ghost"
               size="sm"
-              className={`h-9 w-9 p-0 relative ${location.pathname.startsWith("/discover") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/discover")}
+              className={`h-9 w-9 p-0 relative ${showDiscover ? "bg-accent text-accent-foreground" : ""}`}
+              onClick={() => setShowDiscover(true)}
             >
               <Compass className="w-4.5 h-4.5" />
               {pendingJoinCount > 0 && (
@@ -231,6 +233,9 @@ export const MainLayout = () => {
             }
           />
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showDiscover && <DiscoverModal onClose={() => setShowDiscover(false)} />}
       </AnimatePresence>
     </div>
   );
