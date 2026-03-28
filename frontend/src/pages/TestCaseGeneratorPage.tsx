@@ -239,7 +239,7 @@ function generate(
         }
         case "integer_array": {
           const len = rSize(f.sizeType, f.sizeMin, f.sizeMax, f.sizeRef, resolved, useMin, useMax);
-          let arr = genIntArray(len, f.valueMin, f.valueMax, f.distinct);
+          const arr = genIntArray(len, f.valueMin, f.valueMax, f.distinct);
           if (f.sorted === "asc") arr.sort((a, b) => a - b);
           else if (f.sorted === "desc") arr.sort((a, b) => b - a);
           out = [arr.join(" ")];

@@ -33,7 +33,7 @@ export default function BinarySearchViz() {
 
     let currentArr = arr;
     if (arrayInput.trim()) {
-      const parsed = arrayInput.replace(/[\[\]{}()]/g, "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n));
+      const parsed = arrayInput.replace(/[[\]{}()]/g, "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n));
       if (!parsed.length) return;
       currentArr = parsed.sort((a, b) => a - b);
       setArr(currentArr);

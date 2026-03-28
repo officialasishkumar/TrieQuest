@@ -39,7 +39,7 @@ export default function LinearSearchViz() {
 
     let currentArr = arr;
     if (arrayInput.trim()) {
-      const parsed = arrayInput.replace(/[\[\]{}()]/g, "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n));
+      const parsed = arrayInput.replace(/[[\]{}()]/g, "").split(",").map(s => Number(s.trim())).filter(n => !isNaN(n));
       if (parsed.length === 0) return;
       currentArr = parsed;
       setArr(parsed);
