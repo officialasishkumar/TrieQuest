@@ -159,6 +159,12 @@ export const api = {
       body: JSON.stringify(input),
       skipAuth: true,
     }),
+  googleAuth: (code: string) =>
+    apiRequest<AuthResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+      skipAuth: true,
+    }),
   me: () => apiRequest<User>("/api/auth/me"),
   getProfile: () => apiRequest<User>("/api/profile"),
   updateProfile: (input: {

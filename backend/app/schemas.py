@@ -69,6 +69,10 @@ class RegisterRequest(APIModel):
         return normalize_optional_text(value, field_name="Favorite platform")
 
 
+class GoogleAuthRequest(APIModel):
+    code: str = Field(min_length=1)
+
+
 class LoginRequest(APIModel):
     identifier: str = Field(
         min_length=3,

@@ -25,7 +25,9 @@ class User(Base):
     favorite_topic: Mapped[str | None] = mapped_column(String(120), nullable=True)
     favorite_platform: Mapped[str | None] = mapped_column(String(120), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    auth_provider: Mapped[str] = mapped_column(String(32), default="local")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     owned_groups: Mapped[list[Group]] = relationship("Group", back_populates="owner")
