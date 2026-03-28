@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
+  AlertCircle,
   Check,
   Clock,
   Compass,
   Crown,
   FileText,
   Loader2,
+  RefreshCw,
   Users,
   UserPlus,
   X,
@@ -25,11 +27,14 @@ const DiscoverPage = () => {
   const topGroupsQuery = useQuery({
     queryKey: ["topGroups"],
     queryFn: api.getTopGroups,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const joinRequestsQuery = useQuery({
     queryKey: ["joinRequests", "incoming"],
     queryFn: api.listJoinRequests,
+    retry: 2,
   });
 
   const requestJoinMutation = useMutation({
@@ -155,8 +160,23 @@ const DiscoverPage = () => {
         </h2>
 
         {topGroupsQuery.isLoading ? (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex flex-col items-center justify-center py-16 gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading squads...</p>
+          </div>
+        ) : topGroupsQuery.isError ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+            <AlertCircle className="w-10 h-10 opacity-40" />
+            <p>Failed to load squads. The server might be waking up.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => void topGroupsQuery.refetch()}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
+            </Button>
           </div>
         ) : topGroups.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
