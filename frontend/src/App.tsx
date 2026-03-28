@@ -32,6 +32,8 @@ const QueueViz = lazy(() => import("./pages/visualize/QueueViz"));
 const DFSGridViz = lazy(() => import("./pages/visualize/DFSGrid"));
 const DijkstraViz = lazy(() => import("./pages/visualize/Dijkstra"));
 const TestCaseGeneratorPage = lazy(() => import("./pages/TestCaseGeneratorPage"));
+const SystemDesignPage = lazy(() => import("./pages/SystemDesignPage"));
+const SystemDesignTopicPage = lazy(() => import("./pages/SystemDesignTopicPage"));
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,8 @@ const App = () => (
                   <Route path="/visualize/dfs-grid" element={<DFSGridViz />} />
                   <Route path="/visualize/dijkstra" element={<DijkstraViz />} />
                   <Route path="/test-generator" element={<TestCaseGeneratorPage />} />
+                  <Route path="/system-design" element={<SystemDesignPage />} />
+                  <Route path="/system-design/:slug" element={<SystemDesignTopicPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
