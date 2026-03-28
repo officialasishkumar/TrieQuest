@@ -1,10 +1,13 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "rewrites": [
+    "redirects": [
         {
             "source": "/admin/:path*",
-            "destination": "https://triequest-api.onrender.com/admin/:path*"
-        },
+            "destination": "https://triequest-api.onrender.com/admin/:path*",
+            "permanent": false
+        }
+    ],
+    "rewrites": [
         {
             "source": "/(.*)",
             "destination": "/index.html"
