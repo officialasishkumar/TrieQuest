@@ -151,6 +151,28 @@ export type Challenge = {
   startedAt?: string | null;
 };
 
+export type TopGroup = {
+  id: number;
+  name: string;
+  memberCount: number;
+  problemCount: number;
+  lastActiveAt?: string | null;
+  ownerUsername: string;
+  joinStatus: string | null;
+};
+
+export type JoinRequestItem = {
+  id: number;
+  groupId: number;
+  groupName: string;
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  status: string;
+  createdAt: string;
+};
+
 export type Analytics = {
   stats: StatPoint[];
   difficultyDistribution: DistributionPoint[];

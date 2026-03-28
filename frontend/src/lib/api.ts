@@ -7,7 +7,9 @@ import type {
   FriendRequest,
   GlobalStatsResponse,
   GroupSummary,
+  JoinRequestItem,
   Problem,
+  TopGroup,
   User,
 } from "@/lib/types";
 
@@ -241,6 +243,20 @@ export const api = {
     }),
   rejectFriendRequest: (requestId: number) =>
     apiRequest<void>(`/api/friends/requests/${requestId}/reject`, {
+      method: "POST",
+    }),
+  getTopGroups: () => apiRequest<TopGroup[]>("/api/groups/top"),
+  requestJoinGroup: (groupId: number) =>
+    apiRequest<{ status: string }>(`/api/groups/${groupId}/request-join`, {
+      method: "POST",
+    }),
+  listJoinRequests: () => apiRequest<JoinRequestItem[]>("/api/groups/join-requests"),
+  acceptJoinRequest: (requestId: number) =>
+    apiRequest<{ status: string }>(`/api/groups/join-requests/${requestId}/accept`, {
+      method: "POST",
+    }),
+  rejectJoinRequest: (requestId: number) =>
+    apiRequest<{ status: string }>(`/api/groups/join-requests/${requestId}/reject`, {
       method: "POST",
     }),
   getGlobalStats: () =>
