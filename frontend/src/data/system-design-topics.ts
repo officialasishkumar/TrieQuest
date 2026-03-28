@@ -1693,6 +1693,1025 @@ class AutocompleteTrie {
       realWorld: ["Uber: 100M+ monthly riders, 5M+ drivers", "Lyft: real-time matching in 600+ cities", "Grab: dominant in Southeast Asia with similar architecture"],
     },
   },
+
+  // ── Additional Fundamentals ─────────────────────────────────
+  {
+    slug: "availability-reliability",
+    title: "Availability, Reliability & Fault Tolerance",
+    description: "Ensuring systems stay operational and recover gracefully from failures",
+    category: "fundamentals",
+    difficulty: "Intermediate",
+    icon: "🛡️",
+    content: {
+      overview: "Availability measures the percentage of time a system is operational and accessible. Reliability ensures the system performs its intended function without failure. Fault tolerance is the ability to continue operating when components fail. Together, these properties define how resilient a system is.",
+      keyPoints: [
+        "Availability is measured in 'nines': 99.9% (3 nines) = 8.76 hours downtime/year, 99.99% (4 nines) = 52.6 minutes/year",
+        "Reliability means the system produces correct results consistently — a system can be available but unreliable",
+        "Single Point of Failure (SPOF): any component whose failure brings down the entire system",
+        "Redundancy eliminates SPOFs: active-active (both handle traffic), active-passive (standby takes over on failure)",
+        "Failover strategies: cold standby (minutes), warm standby (seconds), hot standby (milliseconds)",
+      ],
+      explanation: "A system's availability is calculated as: Availability = Uptime / (Uptime + Downtime). For two components in series (both must work), multiply their availabilities. For components in parallel (either can work), availability = 1 - (1 - A1)(1 - A2).\n\nTo achieve high availability, eliminate every SPOF: use multiple app servers behind a load balancer, replicate databases with automatic failover, deploy across multiple availability zones, and use health checks to detect and route around failures.\n\nFault tolerance goes beyond availability — it means the system continues to function (possibly at reduced capacity) even when parts fail. Techniques include: replication, checksums for data integrity, circuit breakers to isolate failing services, and graceful degradation (serving cached data when the database is down).",
+      codeExample: {
+        title: "Health Check with Failover",
+        code: `class ServiceWithFailover {
+  constructor(primaryUrl, backupUrl) {
+    this.primary = primaryUrl;
+    this.backup = backupUrl;
+  }
+
+  async request(path) {
+    try {
+      const res = await fetch(this.primary + path, {
+        signal: AbortSignal.timeout(3000)
+      });
+      if (!res.ok) throw new Error('Primary failed');
+      return res.json();
+    } catch (err) {
+      console.warn('Failing over to backup:', err.message);
+      const res = await fetch(this.backup + path);
+      return res.json();
+    }
+  }
+}`,
+      },
+      pros: ["Users experience minimal disruption", "Business continuity during failures", "Enables SLA commitments (99.99% uptime)"],
+      cons: ["Redundancy increases infrastructure cost", "More complex deployment and monitoring", "Active-active setups require data consistency strategies"],
+      realWorld: ["AWS targets 99.99% availability for most services", "Google's SRE book defines error budgets based on SLOs", "Netflix's Chaos Monkey randomly kills instances to test fault tolerance"],
+    },
+  },
+  {
+    slug: "concurrency-parallelism",
+    title: "Concurrency vs Parallelism",
+    description: "Two approaches to handling multiple tasks — interleaving vs simultaneous execution",
+    category: "fundamentals",
+    difficulty: "Intermediate",
+    icon: "🔀",
+    content: {
+      overview: "Concurrency is about dealing with multiple tasks at once by interleaving their execution (structure). Parallelism is about executing multiple tasks simultaneously using multiple processors (execution). A system can be concurrent without being parallel, and vice versa.",
+      keyPoints: [
+        "Concurrency: multiple tasks make progress by sharing CPU time (context switching) — even on a single core",
+        "Parallelism: multiple tasks run simultaneously on different CPU cores or machines",
+        "Concurrency is about structure; parallelism is about execution",
+        "Thread safety: shared mutable state requires synchronization (mutexes, semaphores, CAS operations)",
+        "Common pitfalls: race conditions, deadlocks, livelocks, priority inversion",
+      ],
+      explanation: "Imagine a single chef (one CPU core) preparing two dishes. Concurrency: the chef chops vegetables for dish A, then stirs dish B, then goes back to dish A — interleaving tasks. Parallelism: two chefs (two cores) each prepare one dish simultaneously.\n\nIn system design, concurrency enables a web server to handle thousands of connections on a single thread (event loop in Node.js). Parallelism enables a data pipeline to process multiple partitions simultaneously across multiple workers.\n\nKey primitives: Mutex (mutual exclusion — only one thread enters critical section), Semaphore (allows N concurrent accesses), Condition Variable (thread waits until a condition is true), Compare-And-Swap (lock-free atomic operation).",
+      codeExample: {
+        title: "Concurrency vs Parallelism in JavaScript",
+        code: `// Concurrency: single thread, interleaved I/O
+async function concurrent() {
+  const [users, posts] = await Promise.all([
+    fetch('/api/users'),   // starts request
+    fetch('/api/posts'),   // starts immediately, doesn't wait
+  ]);
+  // Both requests run concurrently on one thread
+}
+
+// Parallelism: multiple threads via Web Workers
+// main.js
+const worker = new Worker('heavy-task.js');
+worker.postMessage({ data: largeArray });
+worker.onmessage = (e) => console.log(e.data);
+
+// heavy-task.js (runs on separate CPU core)
+self.onmessage = (e) => {
+  const result = e.data.data.map(expensiveComputation);
+  self.postMessage(result);
+};`,
+      },
+      pros: ["Concurrency improves responsiveness without extra hardware", "Parallelism dramatically speeds up CPU-bound tasks", "Modern languages offer high-level abstractions (async/await, goroutines)"],
+      cons: ["Shared mutable state introduces bugs (race conditions, deadlocks)", "Debugging concurrent code is significantly harder", "Parallelism has diminishing returns (Amdahl's Law)"],
+    },
+  },
+
+  // ── Additional Scalability ──────────────────────────────────
+  {
+    slug: "serverless",
+    title: "Serverless Architecture",
+    description: "Run code without managing servers — the cloud provider handles scaling and infrastructure",
+    category: "scalability",
+    difficulty: "Intermediate",
+    icon: "☁️",
+    content: {
+      overview: "Serverless computing lets you run functions in the cloud without provisioning or managing servers. The cloud provider automatically allocates resources, scales based on demand, and charges only for actual execution time. AWS Lambda, Google Cloud Functions, and Azure Functions are the leading platforms.",
+      keyPoints: [
+        "Functions-as-a-Service (FaaS): deploy individual functions that run in response to events (HTTP requests, queue messages, cron schedules)",
+        "Pay-per-invocation: charged only for compute time used (typically per 100ms), not for idle servers",
+        "Auto-scaling: scales from zero to thousands of concurrent instances automatically",
+        "Cold starts: first invocation after idle period takes 100ms-5s to initialize the runtime",
+        "Stateless by design: each invocation is independent — use external storage (S3, DynamoDB) for state",
+      ],
+      explanation: "In a traditional architecture, you provision servers, configure auto-scaling groups, and pay for idle capacity. With serverless, the cloud provider handles all of this.\n\nA typical serverless architecture: API Gateway receives HTTP requests → triggers Lambda functions → functions read/write to DynamoDB → return responses. You only write the business logic; AWS manages the servers, OS patches, scaling, and availability.\n\nLimitations: execution time limits (15 min on AWS Lambda), memory limits (10GB), cold start latency, vendor lock-in, and difficulty debugging distributed functions. Serverless works best for event-driven workloads, APIs, data processing pipelines, and scheduled tasks.",
+      codeExample: {
+        title: "AWS Lambda Function (Node.js)",
+        code: `// handler.js — deployed as an AWS Lambda function
+export const handler = async (event) => {
+  const { httpMethod, path, body } = event;
+
+  if (httpMethod === 'GET' && path === '/users') {
+    const users = await db.scan({ TableName: 'Users' });
+    return { statusCode: 200, body: JSON.stringify(users) };
+  }
+
+  if (httpMethod === 'POST' && path === '/users') {
+    const user = JSON.parse(body);
+    await db.put({ TableName: 'Users', Item: user });
+    return { statusCode: 201, body: JSON.stringify(user) };
+  }
+
+  return { statusCode: 404, body: 'Not Found' };
+};`,
+      },
+      pros: ["Zero server management and automatic scaling", "Pay only for actual usage — ideal for variable workloads", "Reduced operational overhead and faster time-to-market"],
+      cons: ["Cold start latency can impact user experience", "Vendor lock-in to specific cloud provider", "Hard to debug and test locally; limited execution time"],
+      realWorld: ["Coca-Cola replaced all EC2 instances with Lambda, cutting costs by 65%", "Netflix uses Lambda for encoding, validation, and event processing", "iRobot uses serverless for real-time IoT data from Roomba vacuums"],
+    },
+  },
+
+  // ── Additional Networking ───────────────────────────────────
+  {
+    slug: "proxy-reverse-proxy",
+    title: "Proxy vs Reverse Proxy",
+    description: "Forward proxies represent clients; reverse proxies represent servers — both add security and performance",
+    category: "networking",
+    difficulty: "Beginner",
+    icon: "🔄",
+    content: {
+      overview: "A forward proxy sits between clients and the internet, making requests on behalf of clients. A reverse proxy sits in front of servers, receiving requests from clients and forwarding them to backend servers. Despite similar mechanics, they serve different purposes.",
+      keyPoints: [
+        "Forward proxy: client → proxy → internet. Hides client identity, enables content filtering, caching",
+        "Reverse proxy: internet → proxy → server. Hides server identity, enables load balancing, SSL termination, caching",
+        "Reverse proxies are the backbone of modern web architecture (Nginx, HAProxy, Cloudflare)",
+        "SSL termination at the reverse proxy offloads encryption work from backend servers",
+        "Reverse proxies can compress responses, serve static files, and protect against DDoS attacks",
+      ],
+      explanation: "Forward proxy: imagine a company where all employee internet traffic goes through a proxy server. The proxy can cache frequently accessed sites, block inappropriate content, and hide employees' IP addresses from external websites. The external website only sees the proxy's IP.\n\nReverse proxy: when you visit a website, your request first hits a reverse proxy (e.g., Nginx). The proxy decides which backend server should handle the request, forwards it, receives the response, and sends it back to you. You never communicate directly with the backend.\n\nCommon reverse proxy features: load balancing across multiple servers, SSL/TLS termination, response caching, request rate limiting, A/B testing via traffic splitting, and serving as a web application firewall (WAF).",
+      pros: ["Improved security by hiding internal infrastructure", "Better performance via caching and compression", "Centralized SSL management and logging"],
+      cons: ["Adds a network hop (slight latency increase)", "Single point of failure if not redundant", "Configuration complexity for advanced routing rules"],
+      realWorld: ["Nginx powers 34% of all websites as a reverse proxy", "Cloudflare acts as a reverse proxy for 20% of the internet", "Corporate VPNs often use forward proxies for security"],
+    },
+  },
+  {
+    slug: "tcp-vs-udp",
+    title: "TCP vs UDP",
+    description: "Reliable ordered delivery (TCP) vs fast fire-and-forget messaging (UDP)",
+    category: "networking",
+    difficulty: "Beginner",
+    icon: "📡",
+    content: {
+      overview: "TCP (Transmission Control Protocol) and UDP (User Datagram Protocol) are the two main transport-layer protocols. TCP provides reliable, ordered, connection-based communication. UDP provides fast, connectionless, best-effort delivery without guarantees.",
+      keyPoints: [
+        "TCP: connection-oriented (3-way handshake), guarantees delivery order and completeness, has flow/congestion control",
+        "UDP: connectionless, no delivery guarantees, no ordering, no congestion control — but much faster",
+        "TCP overhead: 20-byte header + handshake + ACKs. UDP overhead: just 8-byte header",
+        "TCP is used for: HTTP/HTTPS, email (SMTP), file transfer (FTP), SSH",
+        "UDP is used for: DNS, video streaming, online gaming, VoIP, IoT sensors",
+      ],
+      explanation: "TCP is like sending a registered letter — you get confirmation it arrived, it arrives in order, and lost letters are re-sent. UDP is like shouting across a room — fast, but some words might get lost.\n\nTCP's 3-way handshake: Client sends SYN → Server replies SYN-ACK → Client sends ACK. Only then can data flow. This adds latency but establishes a reliable connection.\n\nWhy use UDP? For real-time applications where speed matters more than completeness. In a video call, a dropped frame is better than a delayed one. Retransmitting a lost packet would cause the video to freeze and fall behind. Modern protocols like QUIC (used by HTTP/3) build reliability on top of UDP to get the best of both worlds.",
+      pros: ["TCP: reliable, ordered delivery with error checking", "UDP: minimal latency, no connection overhead", "Each fits different use cases perfectly"],
+      cons: ["TCP: higher latency due to handshake and ACKs", "UDP: no delivery guarantee — packets can be lost, duplicated, or reordered", "TCP: head-of-line blocking in multiplexed connections"],
+      realWorld: ["HTTP/1.1 and HTTP/2 use TCP; HTTP/3 uses QUIC (built on UDP)", "Online games use UDP for player position updates (60+ times/sec)", "DNS uses UDP for queries (fast) but TCP for zone transfers (reliable)"],
+    },
+  },
+  {
+    slug: "rest-vs-graphql",
+    title: "REST vs GraphQL",
+    description: "Two dominant API paradigms — resource-oriented endpoints vs flexible query language",
+    category: "networking",
+    difficulty: "Intermediate",
+    icon: "🔌",
+    content: {
+      overview: "REST (Representational State Transfer) exposes resources via multiple endpoints with standard HTTP methods. GraphQL provides a single endpoint where clients specify exactly what data they need via a query language. Each has trade-offs in flexibility, caching, and complexity.",
+      keyPoints: [
+        "REST: multiple endpoints (/users, /posts), uses HTTP verbs (GET, POST, PUT, DELETE), returns fixed data shapes",
+        "GraphQL: single endpoint (/graphql), clients write queries specifying exact fields needed, returns only requested data",
+        "Over-fetching (REST returns too much data) and under-fetching (REST requires multiple calls) are solved by GraphQL",
+        "REST is easier to cache (HTTP caching, CDNs). GraphQL caching is more complex (query-level or field-level)",
+        "GraphQL has a strong type system and schema — acts as a contract between frontend and backend",
+      ],
+      explanation: "Consider a mobile app showing a user's profile with their recent posts. With REST: GET /users/1 returns all user fields (many unused), then GET /users/1/posts returns all post fields. Two requests, lots of extra data.\n\nWith GraphQL: one query fetches exactly what's needed:\n  query { user(id: 1) { name, avatar, posts(limit: 5) { title, likes } } }\n\nWhen to use REST: public APIs, simple CRUD apps, when HTTP caching is critical, when the team is small. When to use GraphQL: mobile apps (bandwidth matters), complex data relationships, multiple frontend clients needing different data shapes, rapid frontend iteration.",
+      codeExample: {
+        title: "REST vs GraphQL Comparison",
+        code: `// REST: Two requests, over-fetched data
+const user = await fetch('/api/users/1').then(r => r.json());
+// Returns: { id, name, email, bio, avatar, settings, ... }
+const posts = await fetch('/api/users/1/posts').then(r => r.json());
+// Returns: [{ id, title, body, likes, comments, author, ... }]
+
+// GraphQL: One request, exact data
+const { data } = await fetch('/graphql', {
+  method: 'POST',
+  body: JSON.stringify({
+    query: \`{
+      user(id: 1) {
+        name
+        avatar
+        posts(limit: 5) { title, likes }
+      }
+    }\`
+  })
+}).then(r => r.json());
+// Returns: { user: { name, avatar, posts: [{ title, likes }] } }`,
+      },
+      pros: ["REST: simple, widely understood, excellent HTTP caching", "GraphQL: no over/under-fetching, strongly typed schema", "GraphQL: single endpoint simplifies API versioning"],
+      cons: ["REST: over-fetching and under-fetching waste bandwidth", "GraphQL: complex caching, potential for expensive queries", "GraphQL: steeper learning curve, harder to rate-limit"],
+    },
+  },
+  {
+    slug: "webhooks",
+    title: "Webhooks",
+    description: "Server-to-server HTTP callbacks that notify your app when events happen",
+    category: "networking",
+    difficulty: "Beginner",
+    icon: "🪝",
+    content: {
+      overview: "Webhooks are HTTP callbacks — when an event occurs in a source system, it sends an HTTP POST request to a pre-configured URL in your system. Instead of polling an API repeatedly to check for changes, your app gets notified instantly when something happens.",
+      keyPoints: [
+        "Push model: the source system pushes data to you when events occur — no polling needed",
+        "Your app registers a callback URL with the source system",
+        "Events are delivered as HTTP POST requests with a JSON payload describing what happened",
+        "Must handle: retries (idempotency), verification (signatures), ordering, and failures",
+        "Common use cases: payment notifications, git push events, form submissions, CI/CD triggers",
+      ],
+      explanation: "Without webhooks: your app polls Stripe every 5 seconds asking 'Any new payments?' — 99% of requests return nothing. With webhooks: Stripe sends your app an HTTP POST the instant a payment succeeds.\n\nWebhook security: providers sign payloads with a shared secret (HMAC-SHA256). Your app verifies the signature before processing. This prevents attackers from sending fake webhook events.\n\nReliability: webhook delivery can fail (your server is down, network issues). Good providers retry with exponential backoff (1min, 5min, 30min, 1hr). Your handler must be idempotent — processing the same event twice should be safe (use the event ID to deduplicate).",
+      codeExample: {
+        title: "Webhook Handler (Express.js)",
+        code: `const crypto = require('crypto');
+
+app.post('/webhooks/stripe', express.raw({ type: '*/*' }), (req, res) => {
+  // 1. Verify signature
+  const sig = req.headers['stripe-signature'];
+  const hash = crypto
+    .createHmac('sha256', WEBHOOK_SECRET)
+    .update(req.body)
+    .digest('hex');
+
+  if (sig !== \`sha256=\${hash}\`) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  // 2. Parse and deduplicate
+  const event = JSON.parse(req.body);
+  if (await isProcessed(event.id)) {
+    return res.status(200).send('Already processed');
+  }
+
+  // 3. Handle event
+  if (event.type === 'payment_intent.succeeded') {
+    await fulfillOrder(event.data.object);
+  }
+
+  await markProcessed(event.id);
+  res.status(200).send('OK');
+});`,
+      },
+      pros: ["Real-time notifications without polling overhead", "Simple to implement — just an HTTP endpoint", "Decouples systems — source doesn't need to know your internals"],
+      cons: ["Delivery is not guaranteed — need retry logic", "Debugging is harder (no request you initiated)", "Must handle out-of-order delivery and duplicates"],
+      realWorld: ["GitHub sends webhooks for push, PR, and issue events", "Stripe sends webhooks for payment, subscription, and dispute events", "Slack sends webhooks when messages, reactions, or slash commands occur"],
+    },
+  },
+  {
+    slug: "long-polling",
+    title: "Long Polling vs WebSockets vs SSE",
+    description: "Three techniques for real-time server-to-client communication",
+    category: "networking",
+    difficulty: "Intermediate",
+    icon: "🔃",
+    content: {
+      overview: "When a client needs real-time updates from a server, there are three main approaches: Long Polling (client holds a request open until data arrives), WebSockets (persistent bidirectional connection), and Server-Sent Events (SSE — server pushes updates over a one-way connection).",
+      keyPoints: [
+        "Short polling: client requests every N seconds. Simple but wasteful — most responses are empty",
+        "Long polling: client sends request, server holds it open until data is available or timeout, then client immediately reconnects",
+        "WebSockets: persistent full-duplex connection over a single TCP socket. Both client and server can send at any time",
+        "SSE (Server-Sent Events): server pushes updates to client over a single HTTP connection. One-way only (server → client)",
+        "Choose based on: bidirectional need (WebSockets), simple server push (SSE), or broad compatibility (long polling)",
+      ],
+      explanation: "Long polling: Client sends a GET request. Server doesn't respond immediately — it waits until new data is available (or a timeout, typically 30-60s). Client processes the response and immediately sends another request. This simulates real-time with standard HTTP.\n\nWebSockets: After an HTTP handshake upgrade, both sides communicate freely over a persistent TCP connection. Ideal for chat apps, multiplayer games, and collaborative editing. Overhead per message is just 2-6 bytes (vs ~800 bytes for HTTP headers).\n\nSSE: Server sends a stream of events over a standard HTTP connection using the text/event-stream content type. Built into browsers via the EventSource API. Simpler than WebSockets for one-way updates. Supports automatic reconnection.",
+      codeExample: {
+        title: "Three Real-Time Approaches",
+        code: `// 1. Long Polling
+async function longPoll() {
+  const res = await fetch('/api/updates?since=' + lastId);
+  const data = await res.json();
+  processUpdates(data);
+  longPoll(); // immediately reconnect
+}
+
+// 2. WebSocket
+const ws = new WebSocket('wss://api.example.com/ws');
+ws.onmessage = (event) => processUpdates(JSON.parse(event.data));
+ws.send(JSON.stringify({ type: 'subscribe', channel: 'feed' }));
+
+// 3. Server-Sent Events (SSE)
+const source = new EventSource('/api/stream');
+source.onmessage = (event) => processUpdates(JSON.parse(event.data));
+source.onerror = () => console.log('Reconnecting...');`,
+      },
+      pros: ["Long polling: works everywhere, no special server support", "WebSockets: lowest latency, bidirectional, minimal overhead", "SSE: simple API, automatic reconnection, works with HTTP/2"],
+      cons: ["Long polling: high server resource usage, latency gap between events", "WebSockets: harder to scale (stateful connections), no HTTP caching", "SSE: one-way only, limited browser connection pool (6 per domain in HTTP/1.1)"],
+    },
+  },
+  {
+    slug: "http-https",
+    title: "HTTP & HTTPS",
+    description: "The protocol powering the web — and its secure, encrypted counterpart",
+    category: "networking",
+    difficulty: "Beginner",
+    icon: "🔒",
+    content: {
+      overview: "HTTP (HyperText Transfer Protocol) is the application-layer protocol used for transmitting web pages, APIs, and resources. HTTPS adds TLS/SSL encryption on top of HTTP, ensuring data confidentiality, integrity, and server authentication.",
+      keyPoints: [
+        "HTTP is stateless: each request is independent — the server doesn't remember previous requests",
+        "HTTP methods: GET (read), POST (create), PUT (update/replace), PATCH (partial update), DELETE (remove)",
+        "Status codes: 2xx (success), 3xx (redirect), 4xx (client error), 5xx (server error)",
+        "HTTPS uses TLS handshake: client verifies server's certificate, both agree on encryption keys",
+        "HTTP/2 adds multiplexing (multiple requests over one connection), header compression, and server push",
+      ],
+      explanation: "An HTTP request consists of: method (GET), URL (/api/users), headers (Content-Type, Authorization), and an optional body. The server responds with a status code, headers, and a body.\n\nHTTPS wraps HTTP in TLS encryption. The TLS handshake: (1) Client sends 'hello' with supported cipher suites. (2) Server responds with its SSL certificate containing its public key. (3) Client verifies the certificate against trusted Certificate Authorities. (4) Both sides derive symmetric encryption keys. All subsequent data is encrypted.\n\nHTTP/2 (2015) fixed head-of-line blocking by multiplexing streams over a single TCP connection. HTTP/3 (2022) replaced TCP with QUIC (UDP-based) to eliminate TCP-level head-of-line blocking and reduce connection setup latency.",
+      pros: ["HTTP is simple, universal, and well-tooled", "HTTPS prevents eavesdropping and man-in-the-middle attacks", "HTTP/2 and HTTP/3 significantly improve performance"],
+      cons: ["HTTP is stateless — session management requires cookies/tokens", "HTTPS adds TLS handshake latency (1-2 round trips)", "HTTP/2 server push is rarely used in practice"],
+    },
+  },
+
+  // ── Additional Databases ────────────────────────────────────
+  {
+    slug: "bloom-filters",
+    title: "Bloom Filters",
+    description: "Space-efficient probabilistic data structure for testing set membership",
+    category: "databases",
+    difficulty: "Advanced",
+    icon: "🌸",
+    content: {
+      overview: "A Bloom filter is a probabilistic data structure that can tell you if an element is 'possibly in the set' or 'definitely not in the set'. It uses a bit array and multiple hash functions. It can have false positives but never false negatives, making it perfect for quickly filtering out non-existent keys.",
+      keyPoints: [
+        "Uses a bit array of m bits and k independent hash functions",
+        "Insert: hash the element k times, set those k bit positions to 1",
+        "Lookup: hash the element k times, check if all k positions are 1. If any is 0, the element is definitely not in the set",
+        "False positive rate: P ≈ (1 - e^(-kn/m))^k where n is the number of inserted elements",
+        "Cannot delete elements from a standard Bloom filter (Counting Bloom filters support deletion)",
+      ],
+      explanation: "Imagine checking if a username is taken. Without a Bloom filter, you query the database for every attempt. With a Bloom filter: first check the filter. If it says 'no' — the username is definitely available, skip the DB query. If it says 'maybe yes' — then query the database to confirm.\n\nExample: m=1000 bits, k=3 hash functions. To insert 'alice': hash1('alice')=42, hash2('alice')=307, hash3('alice')=819. Set bits 42, 307, and 819 to 1. To check 'bob': if any of its three bit positions is 0, bob is definitely not in the set.\n\nBloom filters are incredibly space-efficient. To store 1 million elements with a 1% false positive rate, you need only 1.14 MB (vs hundreds of MB for a hash set).",
+      codeExample: {
+        title: "Simple Bloom Filter",
+        code: `class BloomFilter {
+  constructor(size = 1000, hashCount = 3) {
+    this.bits = new Uint8Array(size);
+    this.size = size;
+    this.hashCount = hashCount;
+  }
+
+  _hashes(value) {
+    const positions = [];
+    for (let i = 0; i < this.hashCount; i++) {
+      let hash = 0;
+      for (const ch of value + i) hash = (hash * 31 + ch.charCodeAt(0)) % this.size;
+      positions.push(hash);
+    }
+    return positions;
+  }
+
+  add(value) {
+    for (const pos of this._hashes(value)) this.bits[pos] = 1;
+  }
+
+  mightContain(value) {
+    return this._hashes(value).every(pos => this.bits[pos] === 1);
+  }
+}
+
+const bf = new BloomFilter(10000, 5);
+bf.add('alice'); bf.add('bob');
+bf.mightContain('alice'); // true
+bf.mightContain('charlie'); // false (definitely not)`,
+      },
+      pros: ["Extremely space-efficient compared to hash sets", "O(k) constant time for both insert and lookup", "No false negatives — if it says 'no', the answer is definitive"],
+      cons: ["False positives are possible — must confirm with actual lookup", "Cannot delete elements (standard variant)", "Bit array size must be chosen upfront based on expected cardinality"],
+      realWorld: ["Google Chrome uses Bloom filters to check malicious URLs", "Cassandra uses Bloom filters to avoid unnecessary disk reads for SSTables", "Medium uses Bloom filters to avoid recommending already-read articles"],
+    },
+  },
+  {
+    slug: "database-types",
+    title: "Types of Databases",
+    description: "Choosing the right database type: relational, document, key-value, graph, columnar, time-series",
+    category: "databases",
+    difficulty: "Intermediate",
+    icon: "📚",
+    content: {
+      overview: "Different data access patterns require different database types. Relational databases (SQL) work for structured data with relationships. Document stores handle semi-structured data. Key-value stores excel at simple lookups. Graph databases model complex relationships. Columnar databases optimize analytics. Time-series databases handle temporal data.",
+      keyPoints: [
+        "Relational (SQL): tables with rows and columns, joins, ACID transactions — PostgreSQL, MySQL",
+        "Document: flexible JSON/BSON documents, nested data, no fixed schema — MongoDB, CouchDB",
+        "Key-Value: simple get/set by key, extremely fast, ideal for caching — Redis, DynamoDB",
+        "Wide-Column: data organized by columns rather than rows, great for analytics — Cassandra, HBase",
+        "Graph: nodes and edges model relationships, efficient traversal — Neo4j, Amazon Neptune",
+        "Time-Series: optimized for timestamped data, downsampling, retention policies — InfluxDB, TimescaleDB",
+      ],
+      explanation: "How to choose:\n\n- Need ACID transactions and complex joins? → Relational (PostgreSQL)\n- Flexible schema with nested objects? → Document (MongoDB)\n- Simple lookups with extreme speed? → Key-Value (Redis)\n- Analytics on billions of rows? → Wide-Column (Cassandra) or Columnar (ClickHouse)\n- Social network relationships? → Graph (Neo4j)\n- IoT sensor data or metrics? → Time-Series (InfluxDB)\n\nMany systems use multiple database types (polyglot persistence): e.g., PostgreSQL for user accounts, Redis for sessions, Elasticsearch for search, and InfluxDB for metrics.",
+      realWorld: ["Uber uses PostgreSQL + Redis + Cassandra + Elasticsearch", "Facebook uses MySQL (users) + TAO (graph cache) + RocksDB (messaging)", "Netflix uses Cassandra (100+ PB) + EVCache (Redis) + Elasticsearch"],
+    },
+  },
+
+  // ── Additional Messaging ────────────────────────────────────
+  {
+    slug: "change-data-capture",
+    title: "Change Data Capture (CDC)",
+    description: "Capture and stream database changes in real-time to downstream systems",
+    category: "messaging",
+    difficulty: "Advanced",
+    icon: "📋",
+    content: {
+      overview: "Change Data Capture (CDC) is a pattern that tracks changes (inserts, updates, deletes) in a database and streams them as events to other systems. Instead of polling for changes or using dual writes, CDC reads the database's transaction log to capture every change reliably and in order.",
+      keyPoints: [
+        "Log-based CDC reads the database's write-ahead log (WAL/binlog) — captures every change without impacting query performance",
+        "Alternatives: trigger-based CDC (database triggers write to a changelog table) — simpler but higher overhead",
+        "Debezium is the most popular open-source CDC platform — connectors for PostgreSQL, MySQL, MongoDB, etc.",
+        "CDC events flow to Kafka, enabling real-time materialized views, cache invalidation, search index updates",
+        "Eliminates dual-write problems: instead of writing to DB and Kafka separately (risking inconsistency), write to DB and let CDC propagate",
+      ],
+      explanation: "The dual-write problem: your service writes an order to PostgreSQL AND publishes an event to Kafka. If the Kafka publish fails after the DB write, downstream systems miss the event. If you reverse the order, you might publish an event for a failed write.\n\nCDC solves this: write only to the database. Debezium reads PostgreSQL's WAL and publishes change events to Kafka automatically. Every committed transaction becomes an event — exactly once, in order.\n\nCommon CDC pipeline: PostgreSQL → Debezium → Kafka → Consumers (Elasticsearch for search, Redis for cache, data warehouse for analytics). This creates an eventually consistent but reliable data pipeline.",
+      codeExample: {
+        title: "CDC Event Structure (Debezium)",
+        code: `// Debezium CDC event from PostgreSQL
+{
+  "op": "u",  // c=create, u=update, d=delete, r=read(snapshot)
+  "before": { "id": 1001, "status": "pending", "total": 50.00 },
+  "after":  { "id": 1001, "status": "shipped", "total": 50.00 },
+  "source": {
+    "connector": "postgresql",
+    "db": "orders",
+    "table": "orders",
+    "lsn": 3412894,        // log sequence number
+    "txId": 983,
+    "ts_ms": 1698234567890
+  }
+}
+
+// Consumer: update search index on order changes
+consumer.on('orders.orders', (event) => {
+  if (event.op === 'u' || event.op === 'c') {
+    elasticsearch.index('orders', event.after.id, event.after);
+  } else if (event.op === 'd') {
+    elasticsearch.delete('orders', event.before.id);
+  }
+});`,
+      },
+      pros: ["No impact on source database performance (reads WAL, not queries)", "Exactly-once ordered delivery of all changes", "Eliminates dual-write inconsistencies"],
+      cons: ["Additional infrastructure complexity (Debezium + Kafka)", "Schema changes require careful handling", "Initial snapshot of existing data can be slow for large tables"],
+      realWorld: ["Airbnb uses CDC to sync search indexes in real-time", "Netflix uses CDC for cache invalidation across services", "Shopify uses Debezium CDC for event-driven order processing"],
+    },
+  },
+  {
+    slug: "batch-vs-stream",
+    title: "Batch vs Stream Processing",
+    description: "Process data in large scheduled chunks or continuously as it arrives",
+    category: "messaging",
+    difficulty: "Intermediate",
+    icon: "🔀",
+    content: {
+      overview: "Batch processing collects data over a period and processes it all at once (hourly, daily). Stream processing handles data continuously as individual events arrive, providing near-real-time results. The choice depends on latency requirements, data volume, and processing complexity.",
+      keyPoints: [
+        "Batch: high throughput, high latency. Process hours/days of data in one job — MapReduce, Spark, data warehouses",
+        "Stream: lower throughput per event, low latency. Process events within milliseconds — Kafka Streams, Flink, Spark Streaming",
+        "Lambda architecture: run both batch (accuracy) and stream (speed) pipelines, merge results",
+        "Kappa architecture: use stream processing for everything — replay the event log for reprocessing",
+        "Windowing in streams: tumbling (fixed), sliding (overlapping), session (gap-based) windows for aggregations",
+      ],
+      explanation: "Batch processing example: every night, process all of yesterday's orders to generate sales reports, update recommendation models, and calculate royalties. Hadoop/Spark reads from a data lake, processes terabytes, and writes results to a data warehouse.\n\nStream processing example: as each order comes in, update the real-time dashboard, check for fraud, send confirmation emails, and update inventory counts — all within seconds.\n\nMany modern systems use both: stream processing for real-time features (dashboards, alerts, fraud detection) and batch processing for complex analytics, ML model training, and reconciliation.",
+      pros: ["Batch: simple to implement, efficient for large datasets, easy to retry", "Stream: real-time results, immediate reactions to events", "Stream: natural fit for event-driven architectures"],
+      cons: ["Batch: high latency — results are hours or days old", "Stream: harder to handle failures and out-of-order events", "Stream: exactly-once processing is complex to guarantee"],
+      realWorld: ["Netflix: batch for recommendation models, stream for real-time viewing metrics", "Uber: stream processing for surge pricing, batch for driver payments", "LinkedIn: Kafka streams for real-time notifications, batch Spark for analytics"],
+    },
+  },
+
+  // ── Additional Distributed Systems ──────────────────────────
+  {
+    slug: "service-discovery",
+    title: "Service Discovery",
+    description: "How microservices find and communicate with each other in a dynamic environment",
+    category: "distributed",
+    difficulty: "Intermediate",
+    icon: "🔍",
+    content: {
+      overview: "In a microservices architecture, services are deployed across multiple servers with dynamic IP addresses. Service discovery is the mechanism by which services find each other's network locations. It can be client-side (the client queries a registry and chooses an instance) or server-side (a load balancer queries the registry).",
+      keyPoints: [
+        "Service registry: a database of available service instances and their network locations (Consul, etcd, ZooKeeper)",
+        "Client-side discovery: client queries the registry, picks an instance, and connects directly — more control, more coupling",
+        "Server-side discovery: client sends to a load balancer/router, which queries the registry — simpler clients, extra hop",
+        "Registration: services register on startup and deregister on shutdown. Health checks remove unhealthy instances",
+        "DNS-based discovery: Kubernetes uses DNS (service-name.namespace.svc.cluster.local) to resolve to service IPs",
+      ],
+      explanation: "Without service discovery, you'd hardcode IP addresses — impossible when containers scale up/down dynamically. Service discovery solves this.\n\nClient-side: the Order service needs to call the Payment service. It queries Consul for healthy Payment instances, gets [10.0.1.5:8080, 10.0.1.6:8080], and picks one (round-robin, random, least-connections). Libraries like Netflix Eureka + Ribbon implement this pattern.\n\nServer-side: the Order service sends requests to a load balancer (e.g., AWS ALB). The load balancer queries the registry and forwards to a healthy instance. Kubernetes Services work this way — you call 'payment-service:8080' and kube-proxy routes to a healthy pod.\n\nHealth checks: the registry periodically pings instances (HTTP GET /health). If an instance fails 3 consecutive checks, it's removed from the registry.",
+      pros: ["Enables dynamic scaling — no hardcoded addresses", "Automatic failover when instances become unhealthy", "Supports multiple environments (dev, staging, prod) transparently"],
+      cons: ["Service registry is a critical dependency (must be highly available)", "Client-side discovery adds complexity to every service", "Stale registry data can route traffic to dead instances"],
+      realWorld: ["Netflix uses Eureka for service discovery across 1000+ microservices", "Kubernetes uses etcd-backed DNS for service discovery", "HashiCorp Consul provides service discovery with built-in health checking"],
+    },
+  },
+  {
+    slug: "distributed-locking",
+    title: "Distributed Locking",
+    description: "Coordinate access to shared resources across multiple processes or machines",
+    category: "distributed",
+    difficulty: "Advanced",
+    icon: "🔐",
+    content: {
+      overview: "A distributed lock ensures that only one process across multiple machines can access a shared resource at a time. Unlike local mutexes, distributed locks must handle network partitions, process crashes, and clock skew. Implementations use Redis (Redlock), ZooKeeper, or etcd.",
+      keyPoints: [
+        "Purpose: prevent double-processing, enforce mutual exclusion in distributed systems",
+        "Redis SETNX: simplest approach — SET key value NX PX 30000 (set if not exists, with 30s TTL)",
+        "Redlock (Redis): acquire locks on N/2+1 independent Redis nodes for higher reliability",
+        "ZooKeeper: create ephemeral sequential znodes — lowest sequence number holds the lock",
+        "Fencing tokens: monotonically increasing token prevents stale lock holders from making writes",
+      ],
+      explanation: "Problem: two instances of your payment service both try to charge the same order. Without distributed locking, both succeed — the customer is charged twice.\n\nSimple Redis lock: SET order:1234:lock worker-1 NX PX 30000. If another worker tries, SETNX fails — it must wait. The TTL (30s) prevents deadlocks if the lock holder crashes.\n\nDanger: if worker-1's GC pause lasts longer than 30s, the lock expires and worker-2 acquires it. Now both workers think they hold the lock. Solution: fencing tokens — each lock acquisition returns a monotonically increasing number. The storage layer rejects writes with stale tokens.\n\nZooKeeper approach: more robust. Uses ephemeral nodes (auto-deleted if the client disconnects) and sequential ordering to implement fair, deadlock-free locks.",
+      codeExample: {
+        title: "Distributed Lock with Redis",
+        code: `const crypto = require('crypto');
+
+class RedisLock {
+  constructor(redis) { this.redis = redis; }
+
+  async acquire(resource, ttlMs = 30000) {
+    const token = crypto.randomUUID();
+    const acquired = await this.redis.set(
+      \`lock:\${resource}\`, token, 'NX', 'PX', ttlMs
+    );
+    return acquired ? token : null;
+  }
+
+  async release(resource, token) {
+    // Lua script: only release if we own the lock
+    const script = \`
+      if redis.call('get', KEYS[1]) == ARGV[1] then
+        return redis.call('del', KEYS[1])
+      end
+      return 0\`;
+    return this.redis.eval(script, 1, \`lock:\${resource}\`, token);
+  }
+}
+
+// Usage
+const lock = new RedisLock(redis);
+const token = await lock.acquire('order:1234');
+if (token) {
+  try { await processPayment('order:1234'); }
+  finally { await lock.release('order:1234', token); }
+}`,
+      },
+      pros: ["Prevents race conditions in distributed systems", "Redis locks are fast and simple for most use cases", "ZooKeeper locks are reliable with strong consistency guarantees"],
+      cons: ["Redis locks can fail under network partitions (not perfectly safe)", "Clock skew can cause lock expiration issues", "Adds latency and complexity to critical paths"],
+      realWorld: ["Stripe uses distributed locks to prevent double-charging", "Uber uses ZooKeeper locks for ride assignment", "Kubernetes uses etcd leases for leader election (a form of distributed locking)"],
+    },
+  },
+  {
+    slug: "distributed-tracing",
+    title: "Distributed Tracing",
+    description: "Track requests as they flow through multiple microservices for debugging and performance analysis",
+    category: "distributed",
+    difficulty: "Intermediate",
+    icon: "🔭",
+    content: {
+      overview: "Distributed tracing tracks a single request as it travels through multiple services in a microservice architecture. Each service adds a 'span' (a timed operation) to the trace, creating a tree of spans that shows the full request lifecycle, latencies, and failure points.",
+      keyPoints: [
+        "Trace: the entire journey of a request across all services. Identified by a unique trace ID",
+        "Span: a single operation within a trace (e.g., 'query user DB'). Has start time, duration, status, and parent span",
+        "Context propagation: trace ID and span ID are passed between services via HTTP headers (traceparent, b3)",
+        "OpenTelemetry: the standard for instrumentation — vendor-neutral APIs for traces, metrics, and logs",
+        "Backends: Jaeger, Zipkin, Datadog, AWS X-Ray visualize traces as waterfall/flame charts",
+      ],
+      explanation: "A user request hits API Gateway → User Service → Order Service → Payment Service → Notification Service. Without tracing, if the request is slow, you'd check logs in each service separately. With tracing, one trace ID links all operations:\n\nTrace abc123:\n  ├─ API Gateway (2ms)\n  ├─ User Service: auth check (15ms)\n  ├─ Order Service: create order (45ms)\n  │   ├─ DB write (12ms)\n  │   └─ Cache invalidation (3ms)\n  ├─ Payment Service: charge card (320ms) ← bottleneck!\n  └─ Notification Service: send email (8ms)\n\nThe trace immediately reveals the Payment Service is the bottleneck. You can drill into its span to see it spent 280ms waiting for the payment gateway response.",
+      pros: ["Pinpoints latency bottlenecks across services instantly", "Visualizes the full request flow for debugging", "OpenTelemetry provides vendor-neutral instrumentation"],
+      cons: ["Instrumentation adds small overhead to every request", "High-volume traces require significant storage", "Sampling is needed at scale — you can't store every trace"],
+      realWorld: ["Google's Dapper paper (2010) pioneered distributed tracing", "Uber's Jaeger handles billions of spans per day", "Netflix uses distributed tracing to debug across 1000+ microservices"],
+    },
+  },
+  {
+    slug: "heartbeats",
+    title: "Heartbeat Mechanism",
+    description: "Periodic signals that indicate a service or node is alive and healthy",
+    category: "distributed",
+    difficulty: "Beginner",
+    icon: "💓",
+    content: {
+      overview: "A heartbeat is a periodic signal sent between distributed system components to indicate they are alive and functioning. If heartbeats stop arriving, the monitoring system assumes the sender has failed and triggers recovery actions like failover, re-replication, or alerting.",
+      keyPoints: [
+        "Heartbeat interval: how often signals are sent (typically every 1-10 seconds)",
+        "Timeout: how long to wait before declaring a node dead (usually 3x the interval)",
+        "Push heartbeats: the node sends a signal to a coordinator ('I'm alive')",
+        "Pull heartbeats: a coordinator pings the node and expects a response",
+        "Phi Accrual Failure Detector: instead of binary alive/dead, calculates a suspicion level based on heartbeat history",
+      ],
+      explanation: "In a distributed database cluster: each node sends a heartbeat every 5 seconds to the leader. If the leader doesn't receive a heartbeat for 15 seconds (3 missed beats), it marks the node as 'suspected dead'. After 30 seconds with no heartbeat, it's declared dead and its data partitions are reassigned to healthy nodes.\n\nFalse positives are dangerous: a slow network or GC pause can cause missed heartbeats. The node is alive but declared dead — causing unnecessary failover, data migration, and split-brain scenarios. The Phi Accrual detector reduces false positives by tracking heartbeat arrival times and computing a statistical suspicion level rather than using a fixed timeout.\n\nHeartbeats are also used for: leader election (followers detect leader failure), load balancer health checks, distributed lock renewal, and cluster membership management.",
+      pros: ["Simple and effective failure detection", "Low overhead — tiny messages at regular intervals", "Enables automatic failover and self-healing systems"],
+      cons: ["False positives from network delays or GC pauses", "Fixed timeouts don't adapt to varying network conditions", "High-frequency heartbeats increase network traffic in large clusters"],
+      realWorld: ["Kubernetes uses liveness probes (heartbeats) to restart failed pods", "ZooKeeper uses session heartbeats to maintain ephemeral nodes", "Cassandra uses Phi Accrual failure detection with gossip-based heartbeats"],
+    },
+  },
+  {
+    slug: "disaster-recovery",
+    title: "Disaster Recovery",
+    description: "Strategies for recovering systems and data after catastrophic failures",
+    category: "distributed",
+    difficulty: "Advanced",
+    icon: "🆘",
+    content: {
+      overview: "Disaster recovery (DR) is the set of policies, tools, and procedures to recover IT systems after a catastrophic event — data center outage, natural disaster, cyber attack, or critical software failure. DR plans define Recovery Time Objective (RTO — how fast) and Recovery Point Objective (RPO — how much data loss is acceptable).",
+      keyPoints: [
+        "RTO (Recovery Time Objective): maximum acceptable downtime. E.g., 4 hours means the system must be back within 4 hours",
+        "RPO (Recovery Point Objective): maximum acceptable data loss. E.g., 1 hour means you can lose at most 1 hour of data",
+        "Cold DR: backups only, manual restoration — hours/days RTO, lowest cost",
+        "Warm DR: standby infrastructure partially running — minutes/hours RTO",
+        "Hot DR: fully running replica in another region — seconds/minutes RTO, highest cost",
+      ],
+      explanation: "DR strategies from cheapest to most resilient:\n\n1. Backup & Restore: regular backups to S3/GCS. On disaster, spin up new infrastructure and restore. RTO: hours. RPO: last backup interval.\n\n2. Pilot Light: core infrastructure (database replicas) always running in DR region. On disaster, scale up compute. RTO: tens of minutes.\n\n3. Warm Standby: scaled-down but fully functional copy in DR region. On disaster, scale to full capacity and redirect traffic. RTO: minutes.\n\n4. Multi-Region Active-Active: full infrastructure in multiple regions, all serving traffic. On disaster, DNS routes all traffic to surviving region. RTO: seconds. RPO: near zero.\n\nKey practices: automated failover, regular DR drills, immutable backups (protection against ransomware), and runbooks documenting exact recovery steps.",
+      pros: ["Protects business continuity during catastrophic events", "Regulatory compliance (many industries require DR plans)", "Active-active DR also improves normal performance via geographic distribution"],
+      cons: ["Hot DR doubles (or more) infrastructure costs", "DR drills require significant engineering time", "Complexity of keeping DR environment in sync with production"],
+      realWorld: ["AWS recommends multi-AZ for HA, multi-region for DR", "Netflix runs active-active across 3 AWS regions", "Financial institutions are required by regulation to have tested DR plans"],
+    },
+  },
+
+  // ── Additional Patterns ─────────────────────────────────────
+  {
+    slug: "idempotency",
+    title: "Idempotency",
+    description: "Design operations that produce the same result no matter how many times they are executed",
+    category: "patterns",
+    difficulty: "Intermediate",
+    icon: "🔁",
+    content: {
+      overview: "An operation is idempotent if performing it multiple times has the same effect as performing it once. In distributed systems where retries are common (network timeouts, message redelivery), idempotency prevents duplicate side effects like double charges or duplicate records.",
+      keyPoints: [
+        "Naturally idempotent: GET, PUT (set to value), DELETE (delete if exists). NOT idempotent: POST (create), increment",
+        "Idempotency key: a unique client-generated key (UUID) sent with each request to deduplicate on the server",
+        "Server stores processed idempotency keys and returns cached response for duplicate requests",
+        "Critical for: payment processing, order placement, message handling, webhook processing",
+        "TTL: idempotency keys should expire after a reasonable window (e.g., 24-48 hours)",
+      ],
+      explanation: "Problem: Client sends POST /payments. Network times out. Did the payment go through? The client doesn't know, so it retries. Without idempotency, the customer is charged twice.\n\nSolution: Client includes an Idempotency-Key header (a UUID). Server flow:\n1. Check if this key exists in the idempotency store\n2. If yes → return the stored response (no duplicate processing)\n3. If no → process the request, store the result with the key, return response\n\nEven if the client retries 10 times with the same key, the payment is processed exactly once.",
+      codeExample: {
+        title: "Idempotent API Endpoint",
+        code: `app.post('/api/payments', async (req, res) => {
+  const idempotencyKey = req.headers['idempotency-key'];
+  if (!idempotencyKey) {
+    return res.status(400).json({ error: 'Idempotency-Key required' });
+  }
+
+  // Check if already processed
+  const cached = await redis.get(\`idem:\${idempotencyKey}\`);
+  if (cached) {
+    return res.status(200).json(JSON.parse(cached));
+  }
+
+  // Process payment
+  const result = await processPayment(req.body);
+
+  // Store result with 24h TTL
+  await redis.setex(
+    \`idem:\${idempotencyKey}\`, 86400, JSON.stringify(result)
+  );
+
+  res.status(201).json(result);
+});
+
+// Client usage
+fetch('/api/payments', {
+  method: 'POST',
+  headers: { 'Idempotency-Key': crypto.randomUUID() },
+  body: JSON.stringify({ amount: 50, currency: 'USD' })
+});`,
+      },
+      pros: ["Prevents duplicate side effects from retries", "Enables safe retry logic — clients can retry freely", "Simple to implement with a key-value store"],
+      cons: ["Requires additional storage for idempotency keys", "Key collision (extremely unlikely with UUIDs) could skip processing", "Must handle concurrent requests with the same key (locking)"],
+      realWorld: ["Stripe requires Idempotency-Key for all POST requests", "AWS S3 PUT is naturally idempotent (same key = overwrite)", "Kafka consumer groups use offsets for idempotent message processing"],
+    },
+  },
+  {
+    slug: "client-server",
+    title: "Client-Server Architecture",
+    description: "The foundational model where clients request services from centralized servers",
+    category: "patterns",
+    difficulty: "Beginner",
+    icon: "🖥️",
+    content: {
+      overview: "Client-server architecture divides a system into two roles: clients (which request services) and servers (which provide them). The client initiates communication, and the server responds. This model underpins the web, email, databases, and most networked applications.",
+      keyPoints: [
+        "Client: initiates requests. Examples: web browser, mobile app, API consumer",
+        "Server: listens for and responds to requests. Examples: web server, database, API backend",
+        "Thin client: minimal logic on client (server-rendered HTML). Thick client: rich logic on client (SPAs, mobile apps)",
+        "Stateless servers are easier to scale horizontally (add more servers behind a load balancer)",
+        "Alternatives: peer-to-peer (no central server), serverless (abstracted server), event-driven (pub/sub)",
+      ],
+      explanation: "The web is the quintessential client-server system. Your browser (client) sends an HTTP request to google.com (server). The server processes the request, queries databases, and returns an HTML/JSON response.\n\nEvolution of client-server:\n1. Monolithic: single server handles everything (web + app + DB)\n2. 2-tier: client talks directly to database server\n3. 3-tier: client → application server → database server\n4. N-tier / microservices: client → API gateway → multiple specialized services → multiple databases\n\nModern SPAs (React, Vue) are 'thick clients' — they handle routing, state management, and rendering. The server becomes a thin API layer that returns JSON data.",
+      pros: ["Simple and well-understood architecture", "Centralized data management and access control", "Easy to update server without changing clients"],
+      cons: ["Server is a single point of failure (needs redundancy)", "Server capacity limits the number of concurrent clients", "Network dependency — clients can't function offline without caching"],
+    },
+  },
+  {
+    slug: "peer-to-peer",
+    title: "Peer-to-Peer (P2P) Architecture",
+    description: "Decentralized systems where every node is both client and server",
+    category: "patterns",
+    difficulty: "Intermediate",
+    icon: "🕸️",
+    content: {
+      overview: "In P2P architecture, every node (peer) acts as both a client and a server. There's no central authority — peers communicate directly, share resources, and collectively provide the service. This creates highly resilient, scalable systems that can't be taken down by removing a single node.",
+      keyPoints: [
+        "No central server — every peer contributes resources (bandwidth, storage, compute)",
+        "Structured P2P: peers organized in a DHT (Distributed Hash Table) for efficient lookup — Chord, Kademlia",
+        "Unstructured P2P: peers connect randomly, use flooding or random walks to find content — early Gnutella",
+        "Hybrid P2P: some central coordination (tracker/bootstrap nodes) but data transfer is peer-to-peer — BitTorrent",
+        "NAT traversal: peers behind firewalls/NATs use techniques like STUN, TURN, ICE to establish direct connections",
+      ],
+      explanation: "BitTorrent example: A file is split into pieces. Each peer downloads pieces from multiple other peers simultaneously (not from one server). As you download, you also upload pieces you already have to other peers. This distributes bandwidth costs and gets faster as more peers join.\n\nDHT (Distributed Hash Table): maps keys to peers. To find which peer stores file X, hash the filename to get a key, then route through the DHT to find the responsible peer. Lookup takes O(log N) hops for N peers.\n\nWebRTC enables P2P in the browser — video calls, file sharing, and real-time data channels without a central server (except for initial signaling).",
+      pros: ["No single point of failure — extremely resilient", "Scales naturally as more peers join (they bring resources)", "No central infrastructure costs — peers contribute bandwidth"],
+      cons: ["Harder to enforce security and access control", "Free-rider problem — some peers consume without contributing", "NAT traversal is complex; not all peers can connect directly"],
+      realWorld: ["BitTorrent: handles 40% of internet upload traffic", "IPFS: decentralized file storage using content-addressed DHT", "WebRTC: powers Google Meet, Discord voice, and browser-based P2P file sharing"],
+    },
+  },
+  {
+    slug: "push-vs-pull",
+    title: "Push vs Pull Architecture",
+    description: "Should the server push data to clients or should clients pull when they need it?",
+    category: "patterns",
+    difficulty: "Intermediate",
+    icon: "📤",
+    content: {
+      overview: "In a pull architecture, clients request data when they need it (polling). In a push architecture, the server sends data to clients as soon as it's available. The choice affects latency, resource usage, and complexity. Many systems use a hybrid approach.",
+      keyPoints: [
+        "Pull (polling): client periodically requests updates. Simple but can be wasteful or have latency gaps",
+        "Push: server sends updates immediately when data changes. Lower latency but requires persistent connections",
+        "Fan-out on write (push): pre-compute and push to all followers' feeds when content is created",
+        "Fan-out on read (pull): compute the feed when a user requests it by pulling from followed users",
+        "Hybrid: push for active users, pull for inactive users (Twitter's approach)",
+      ],
+      explanation: "Twitter's news feed is the classic example:\n\nPush (fan-out on write): When a user tweets, immediately write that tweet to all followers' cached timelines. Reading the timeline is fast (pre-computed), but a celebrity with 50M followers creates 50M writes per tweet.\n\nPull (fan-out on read): When a user opens their timeline, query all followed users for recent tweets and merge them. No write amplification, but reading is slow (many queries per request).\n\nTwitter's hybrid: regular users' tweets are pushed (fan-out on write). Celebrities' tweets are pulled at read time and merged into the pre-computed feed. This caps write amplification while keeping reads fast.",
+      pros: ["Push: near-zero latency for updates, efficient for frequently-read data", "Pull: simpler implementation, no wasted pushes for inactive users", "Hybrid: balances the trade-offs of both approaches"],
+      cons: ["Push: write amplification for popular content creators", "Pull: higher read latency, more compute at read time", "Push: maintaining persistent connections at scale is complex"],
+      realWorld: ["Instagram: fan-out on write for feeds (push model)", "Twitter: hybrid push/pull based on follower count", "Email: push (IMAP IDLE) for new emails, pull (POP3) for batch download"],
+    },
+  },
+
+  // ── Additional Real-World Systems ───────────────────────────
+  {
+    slug: "design-instagram",
+    title: "Design Instagram",
+    description: "Photo-sharing social network with feeds, stories, likes, and explore — serving 2B+ users",
+    category: "real-world",
+    difficulty: "Intermediate",
+    icon: "📸",
+    content: {
+      overview: "Instagram is a photo and video sharing platform where users post content, follow others, view a personalized feed, interact via likes/comments, and discover new content. Core challenges include generating personalized feeds at scale, storing and serving billions of photos/videos efficiently, and handling celebrity posting (fan-out problem).",
+      keyPoints: [
+        "Photo storage: original photos stored in object storage (S3), multiple resolutions generated and served via CDN",
+        "News feed: fan-out on write — when a user posts, write to all followers' feed caches (Redis/Memcached)",
+        "Celebrity optimization: don't fan out for users with millions of followers — merge their posts at read time",
+        "Like/comment counters: use Redis for fast increment/decrement, async sync to database",
+        "Explore/discovery: ML-based recommendation engine analyzing user behavior, content features, and engagement signals",
+      ],
+      explanation: "Core services: (1) User Service — profiles, follows, authentication. (2) Post Service — upload, store, generate thumbnails. (3) Feed Service — generate and cache personalized feeds. (4) Notification Service — push notifications for likes, comments, follows.\n\nPhoto upload flow: client uploads to Post Service → store original in S3 → async job generates 4-5 resolutions → store URLs in DB → fan-out to followers' feeds → send push notifications.\n\nFeed generation (fan-out on write): User A posts → Feed Service writes post ID to all followers' Redis feed lists. When a user opens the app, read their pre-computed feed from Redis (fast). For celebrities (>500K followers), skip fan-out and merge their posts at read time.\n\nStorage: Instagram stores 100M+ photos/day. Using S3 with CDN, each photo in ~5 sizes = ~500M objects/day. Content-addressed storage deduplicates identical uploads.",
+      realWorld: ["Instagram: 2B+ monthly active users, 100M+ photos uploaded daily", "Uses PostgreSQL (sharded) for metadata, Redis for feeds, S3 for media", "Moved from fan-out on write to hybrid model as celebrity accounts grew"],
+    },
+  },
+  {
+    slug: "design-twitter",
+    title: "Design Twitter",
+    description: "Real-time microblogging platform with tweets, timelines, trends, and search",
+    category: "real-world",
+    difficulty: "Intermediate",
+    icon: "🐦",
+    content: {
+      overview: "Twitter (X) is a microblogging platform where users post short messages (tweets), follow others, see a personalized timeline, and discover trending topics. Core challenges include timeline generation at scale, handling celebrity tweet fan-out, real-time search, and trending topic computation.",
+      keyPoints: [
+        "Timeline: hybrid fan-out — push for regular users (<5K followers), pull-and-merge for celebrities at read time",
+        "Tweet storage: append-only with ~500M tweets/day. Sharded by tweet ID (snowflake IDs embed timestamp)",
+        "Search: inverted index updated in near-real-time, supports recency-weighted ranking",
+        "Trends: streaming computation over sliding windows, counting hashtag/topic frequency with decay",
+        "Snowflake IDs: 64-bit IDs = timestamp(41b) + datacenter(5b) + machine(5b) + sequence(12b) — sortable, unique",
+      ],
+      explanation: "Timeline generation: The read-heavy path. When User A opens Twitter, the Feed Service reads their pre-computed timeline from cache (fan-out on write). For followed celebrities, it fetches recent tweets and merges them in real-time (fan-out on read).\n\nTweet posting: User posts tweet → write to Tweets table → async fan-out to followers' timeline caches → update search index → check for trending hashtags → send push notifications.\n\nTrending topics: A streaming pipeline (Kafka + Flink) processes all tweets in real-time. It counts hashtag occurrences in sliding windows (5min, 1hr), applies geographic filtering, and ranks by velocity (rate of increase, not just count). This prevents stale topics from dominating.\n\nSearch: an inverted index maps words to tweet IDs. When a user searches 'election', find all tweet IDs containing that word, rank by relevance (recency, engagement, user authority), and return top results.",
+      realWorld: ["Twitter: 500M+ tweets/day, 300K+ tweets/second during peak events", "Hybrid fan-out reduced timeline generation latency from 5s to 300ms", "Manhattan (Twitter's key-value store) handles 10M+ requests/second"],
+    },
+  },
+  {
+    slug: "design-ecommerce",
+    title: "Design E-Commerce Platform",
+    description: "Design Amazon-like marketplace with catalog, cart, orders, payments, and recommendations",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "🛒",
+    content: {
+      overview: "An e-commerce platform lets users browse products, add to cart, checkout, make payments, and track orders. Core challenges include inventory management (preventing overselling), handling flash sales (extreme traffic spikes), and building personalized recommendations.",
+      keyPoints: [
+        "Product catalog: search via Elasticsearch, browse via category hierarchy, filter by attributes",
+        "Shopping cart: stored in Redis (fast, per-session) with DB persistence for logged-in users",
+        "Inventory: pessimistic locking or reservation-based system to prevent overselling during checkout",
+        "Order processing: saga pattern across services — inventory → payment → fulfillment → notification",
+        "Recommendations: collaborative filtering ('users who bought X also bought Y'), content-based, and trending",
+      ],
+      explanation: "Flash sale challenge: 1M users try to buy 1K items at exactly 10:00 AM. Naive approach: all 1M hit the inventory DB simultaneously — database melts.\n\nSolution: (1) Queue-based throttling — funnel all requests through a message queue, process sequentially. (2) Inventory in Redis — fast atomic decrement (DECR). If count reaches 0, reject remaining requests immediately. (3) Pre-generate tokens — only 1K tokens are created, distributed randomly. Only token holders can proceed to checkout.\n\nOrder saga: CreateOrder → ReserveInventory → ChargePayment → ShipOrder. If payment fails, compensating action releases the inventory reservation. Each step is idempotent and publishes events for the next step.\n\nSearch: Elasticsearch indexes product title, description, brand, category, and attributes. Supports fuzzy matching, faceted search (filter by price range, rating, brand), and relevance ranking.",
+      realWorld: ["Amazon: 350M+ products, processes 66K orders/second during Prime Day", "Shopify: handles 80K+ requests/second across millions of stores", "Alibaba: 583K orders/second during Singles' Day peak"],
+    },
+  },
+  {
+    slug: "design-google-docs",
+    title: "Design Google Docs",
+    description: "Real-time collaborative document editor where multiple users edit simultaneously",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "📝",
+    content: {
+      overview: "A collaborative editor lets multiple users edit the same document simultaneously with real-time cursor tracking and conflict-free merging. Core challenges include conflict resolution when users edit the same text concurrently, real-time synchronization, and offline support.",
+      keyPoints: [
+        "OT (Operational Transformation): transform concurrent operations against each other to maintain consistency",
+        "CRDT (Conflict-free Replicated Data Type): data structure that automatically merges without conflicts",
+        "Each keystroke is an operation: insert(position, char), delete(position). Operations are broadcast to all clients",
+        "Cursor presence: each user's cursor position and selection are shared in real-time via WebSocket",
+        "Version history: every operation is logged, enabling undo/redo and viewing document history",
+      ],
+      explanation: "The core problem: User A inserts 'X' at position 5. Simultaneously, User B deletes character at position 3. When A receives B's operation, position 5 has shifted — blindly applying it would corrupt the document.\n\nOT solution: when receiving a remote operation, transform it against all local operations that happened concurrently. Insert(5,'X') transformed against Delete(3) becomes Insert(4,'X') because the deletion shifted everything left by 1.\n\nCRDT alternative: assign each character a unique ID and position between neighbors (fractional indexing). Insert('X', between char-3 and char-4). CRDTs merge automatically without a central server — enabling true P2P editing and offline support.\n\nArchitecture: Client → WebSocket → Collaboration Service (applies OT/CRDT) → Document Store (periodic snapshots) → CDN (for document loading). The collaboration service maintains the authoritative document state and broadcasts transformed operations to all connected clients.",
+      realWorld: ["Google Docs uses OT with a central server for conflict resolution", "Figma uses CRDTs for real-time design collaboration", "Apple Notes uses CRDTs for offline-first sync across devices"],
+    },
+  },
+  {
+    slug: "design-google-maps",
+    title: "Design Google Maps",
+    description: "Navigation and mapping platform with real-time traffic, routing, and location search",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "🗺️",
+    content: {
+      overview: "A mapping platform provides map rendering, location search, turn-by-turn navigation, real-time traffic, and ETA calculation. Core challenges include storing and serving map tiles at multiple zoom levels, computing optimal routes on a massive road graph, and incorporating real-time traffic data.",
+      keyPoints: [
+        "Map tiles: pre-rendered at ~20 zoom levels, served from CDN. Vector tiles (modern) are smaller and rendered client-side",
+        "Geocoding: convert address text to lat/lng coordinates using address databases and NLP",
+        "Routing: road network as a weighted graph. Use A* or Contraction Hierarchies for fast shortest-path queries",
+        "Real-time traffic: aggregate GPS data from millions of phones, compute road segment speeds, update routing weights",
+        "ETA: combine routing distance with real-time traffic, historical patterns (rush hour), and road type",
+      ],
+      explanation: "Map tile serving: the world map is divided into tiles at each zoom level. Level 0 = 1 tile (whole world). Level 1 = 4 tiles. Level 20 = ~1 trillion tiles. Each tile is a 256x256 image (raster) or vector data. Tiles are pre-generated and served from CDN with aggressive caching.\n\nRouting: the road network is a graph with ~1 billion edges. Dijkstra's algorithm is too slow. Contraction Hierarchies pre-process the graph by adding 'shortcut' edges — continental routes are computed in milliseconds.\n\nReal-time traffic: millions of Android phones anonymously report their GPS location and speed. Map matching algorithms snap GPS points to road segments. Speeds are aggregated per road segment and time window. Slow segments are colored red on the map and routing is updated to avoid congestion.\n\nPlaces search: when you search 'coffee shop near me', the system uses your location to find nearby POIs (Points of Interest) via spatial index (R-tree or geohash), ranks by relevance, rating, distance, and returns results.",
+      realWorld: ["Google Maps: 1B+ monthly users, 20PB+ of street imagery", "Waze: crowdsourced traffic + incident reporting", "Mapbox: powers Uber, Snap, and many apps with custom map rendering"],
+    },
+  },
+  {
+    slug: "design-key-value-store",
+    title: "Design Distributed Key-Value Store",
+    description: "Fast, scalable storage with simple get/put operations — like DynamoDB or Redis Cluster",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "🗝️",
+    content: {
+      overview: "A distributed key-value store provides simple get(key) and put(key, value) operations across multiple nodes with high availability and scalability. Core challenges include data partitioning, replication, consistency, conflict resolution, and failure handling.",
+      keyPoints: [
+        "Partitioning: consistent hashing distributes keys across nodes. Adding/removing nodes moves only K/N keys",
+        "Replication: each key is replicated on N nodes (typically 3) for fault tolerance. Quorum: R + W > N for consistency",
+        "Conflict resolution: vector clocks track causality. Last-writer-wins (LWW) or application-level merge for concurrent writes",
+        "Failure detection: gossip protocol propagates membership changes. Sloppy quorum + hinted handoff for temporary failures",
+        "Storage engine: LSM-tree (Log-Structured Merge tree) for write-heavy workloads, B-tree for read-heavy",
+      ],
+      explanation: "Architecture following DynamoDB's design:\n\n1. Consistent hashing ring: keys are hashed to positions on a ring. Each node owns a range. Virtual nodes ensure even distribution.\n\n2. Replication: key K is stored on the node that owns its hash position AND the next N-1 nodes clockwise on the ring.\n\n3. Read/Write quorum: with N=3 replicas, W=2 (write to 2 nodes), R=2 (read from 2 nodes). Since R+W > N, at least one node has the latest value. Tunable: W=1,R=1 for speed. W=3,R=1 for write-safety.\n\n4. Conflict resolution: if two nodes accept writes to the same key during a partition, vector clocks detect the conflict. The application resolves it (e.g., merge shopping carts) or LWW picks the latest timestamp.\n\n5. Anti-entropy: Merkle trees on each node detect data inconsistencies. Nodes periodically compare Merkle tree hashes and sync divergent key ranges.",
+      realWorld: ["Amazon DynamoDB: based on Dynamo paper (2007), single-digit millisecond latency", "Apache Cassandra: DynamoDB-inspired, used by Netflix (100+ PB), Apple (400K+ nodes)", "Redis Cluster: in-memory KV store with automatic sharding across 1000 nodes"],
+    },
+  },
+  {
+    slug: "design-payment-system",
+    title: "Design Payment System",
+    description: "Handle money movement reliably — processing charges, refunds, and settlements at scale",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "💳",
+    content: {
+      overview: "A payment system processes financial transactions — charging credit cards, handling refunds, settling with merchants, and preventing fraud. The paramount concern is correctness: money must never be lost, duplicated, or charged incorrectly. This requires exactly-once processing, strong consistency, and comprehensive audit trails.",
+      keyPoints: [
+        "Idempotency is non-negotiable: every payment request includes an idempotency key to prevent double charges",
+        "Double-entry bookkeeping: every transaction creates two entries (debit one account, credit another). Total always balances to zero",
+        "Payment state machine: CREATED → AUTHORIZED → CAPTURED → SETTLED (or FAILED/REFUNDED at any point)",
+        "PSP integration: Payment Service Provider (Stripe, Adyen) handles card network communication",
+        "Reconciliation: daily batch job compares internal records with PSP/bank statements to detect discrepancies",
+      ],
+      explanation: "Payment flow: (1) Client submits order with payment method. (2) Payment Service creates a payment record (CREATED) with an idempotency key. (3) Calls PSP to authorize the card (AUTHORIZED — funds are held). (4) On order confirmation, captures the payment (CAPTURED — funds are deducted). (5) At end of day, settlement batch transfers funds to the merchant.\n\nExactly-once processing: the Payment Service uses a transactional outbox pattern. Within one DB transaction: insert payment record + insert event to outbox table. A separate process reads the outbox and publishes to Kafka. Even if the process crashes and restarts, the event is published exactly once.\n\nFraud detection: real-time rules engine checks velocity (too many transactions in short time), amount anomalies, geographic impossibility (two transactions from different countries within minutes), and ML models trained on historical fraud patterns.",
+      realWorld: ["Stripe processes hundreds of billions of dollars/year with <0.1% failure rate", "Square uses double-entry ledger for all financial operations", "PayPal handles 40M+ transactions/day across 200 markets"],
+    },
+  },
+  {
+    slug: "design-web-crawler",
+    title: "Design Web Crawler",
+    description: "Systematically browse the internet, download web pages, and build a searchable index",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "🕷️",
+    content: {
+      overview: "A web crawler (spider) systematically downloads web pages, extracts links, and follows them to discover more pages. It's the foundation of search engines. Core challenges include politeness (not overwhelming websites), deduplication (not crawling the same page twice), prioritization (crawling important pages first), and scale (billions of pages).",
+      keyPoints: [
+        "URL frontier: a priority queue of URLs to crawl. Prioritize by page importance (PageRank), freshness, and domain",
+        "Politeness: respect robots.txt, enforce per-domain rate limits (1 request/second), and spread load across domains",
+        "Deduplication: URL dedup (normalize and hash URLs) + content dedup (fingerprint page content to detect mirrors/duplicates)",
+        "DNS resolver: custom caching DNS resolver to avoid DNS bottleneck at high crawl rates",
+        "Distributed architecture: multiple crawler workers, URL frontier partitioned by domain, central coordination",
+      ],
+      explanation: "Crawl loop: (1) Pop highest-priority URL from frontier. (2) Check robots.txt cache for permission. (3) Check URL dedup store (Bloom filter) — skip if already crawled. (4) Download page (HTTP GET with timeout). (5) Parse HTML, extract links and content. (6) Compute content fingerprint (SimHash) — skip if duplicate content. (7) Store page content for indexing. (8) Add extracted links to frontier.\n\nScale: Google crawls billions of pages. To crawl 1B pages/day at 1 page/second/worker = 11,574 workers. URL frontier is distributed — partition by domain hash so each worker handles a set of domains, enabling per-domain rate limiting.\n\nFreshness: not all pages need re-crawling at the same rate. News sites: hourly. Corporate pages: weekly. Historical archives: monthly. Adaptive crawl rate based on how frequently pages change.",
+      realWorld: ["Googlebot crawls hundreds of billions of pages", "Common Crawl provides free monthly web crawl datasets (250B+ pages)", "Scrapy is a popular open-source Python crawling framework"],
+    },
+  },
+  {
+    slug: "design-google-search",
+    title: "Design Search Engine",
+    description: "Index billions of web pages and return the most relevant results in milliseconds",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "🔎",
+    content: {
+      overview: "A search engine crawls the web, builds an inverted index of all words and their containing documents, and ranks results by relevance when a user searches. Core challenges include building and updating a petabyte-scale inverted index, ranking billions of results in milliseconds, and handling ambiguous queries.",
+      keyPoints: [
+        "Inverted index: maps each word to a sorted list of document IDs containing that word, with positions and frequencies",
+        "PageRank: pages linked by many important pages are themselves important. Recursive graph algorithm",
+        "Query processing: parse query → look up terms in inverted index → intersect posting lists → rank results → return top K",
+        "Ranking signals: PageRank, term frequency (TF-IDF), freshness, click-through rate, page speed, mobile-friendliness",
+        "Index sharding: the index is too large for one machine — partition by document ID across thousands of shards",
+      ],
+      explanation: "Indexing pipeline: (1) Crawler downloads pages. (2) Parser extracts text, title, headings, links. (3) Tokenizer splits text into terms, applies stemming (running→run), removes stop words. (4) Indexer builds inverted index: 'distributed' → [doc1:pos5, doc47:pos12, doc203:pos1].\n\nQuery processing: user searches 'distributed systems'. (1) Look up 'distributed' posting list and 'systems' posting list. (2) Intersect lists to find documents containing both words. (3) Score each document: TF-IDF (how important is the term in this document vs all documents) × PageRank × freshness × 100+ other signals. (4) Return top 10 results.\n\nScale: the index is partitioned across thousands of machines. Each query is sent to all shards in parallel. Each shard returns its top-K results. A merger combines and re-ranks them. Total latency: 200-400ms for billions of documents.",
+      realWorld: ["Google: 100B+ pages indexed, 8.5B searches/day", "Bing: uses deep learning for query understanding and ranking", "Elasticsearch: popular open-source search engine based on Lucene"],
+    },
+  },
+  {
+    slug: "design-spotify",
+    title: "Design Spotify",
+    description: "Music streaming platform with playlists, recommendations, and offline playback",
+    category: "real-world",
+    difficulty: "Intermediate",
+    icon: "🎵",
+    content: {
+      overview: "A music streaming service lets users search, browse, and stream millions of songs on demand. It generates personalized playlists, supports offline downloads, and handles concurrent streams from millions of users. Core challenges include audio streaming at scale, recommendation algorithms, and music rights management.",
+      keyPoints: [
+        "Audio storage: songs stored in multiple formats and bitrates (96/160/320 kbps). Served from CDN edge nodes",
+        "Streaming protocol: adaptive bitrate streaming — client switches quality based on network conditions",
+        "Recommendation: collaborative filtering (users with similar taste), audio features (tempo, energy), NLP on playlists/reviews",
+        "Offline mode: encrypted downloads stored locally, license checked periodically (every 30 days)",
+        "Royalty tracking: every stream is logged for per-play royalty calculation and reporting to rights holders",
+      ],
+      explanation: "Audio pipeline: artist uploads WAV → transcoding service generates Ogg Vorbis (96/160/320 kbps) + AAC variants → stored in object storage → replicated to CDN edge servers worldwide.\n\nStreaming: client requests a song → CDN serves audio chunks (not the full file). Adaptive bitrate: on WiFi, stream 320kbps. On cellular, drop to 160kbps. On poor connection, drop to 96kbps. Seamless switching mid-song.\n\nDiscover Weekly (recommendation): (1) Collaborative filtering: find users with similar listening history, recommend songs they liked that you haven't heard. (2) Audio analysis: ML models analyze raw audio for tempo, key, energy, danceability — recommend songs with similar features. (3) NLP: analyze playlist titles, blog posts, and reviews to understand song context. Combine all signals to generate a personalized 30-song playlist every Monday.",
+      realWorld: ["Spotify: 600M+ users, 100M+ songs, 5B+ playlists", "Uses Google Cloud with 2,500+ microservices", "Discover Weekly generates 2B+ streams/month"],
+    },
+  },
+  {
+    slug: "design-tinder",
+    title: "Design Tinder",
+    description: "Location-based dating app with swipe-based matching, real-time chat, and profile recommendations",
+    category: "real-world",
+    difficulty: "Intermediate",
+    icon: "💘",
+    content: {
+      overview: "A dating app shows nearby user profiles for swiping (like/pass), creates matches when both users like each other, and enables real-time chat between matches. Core challenges include efficient proximity-based user discovery, recommendation ranking, preventing users from seeing the same profiles repeatedly, and real-time matching.",
+      keyPoints: [
+        "Geospatial indexing: find users within N km radius using geohash or spatial index. Update location on app open",
+        "Recommendation engine: rank nearby profiles by compatibility score, activity recency, and previous swipe patterns",
+        "Swipe deduplication: store all shown profiles per user to never show the same person twice",
+        "Matching: when User A likes User B AND User B has already liked User A → create match, notify both via push",
+        "Chat: WebSocket-based real-time messaging between matched users, similar to design-chat-system",
+      ],
+      explanation: "Profile recommendation flow: (1) User opens app, sends GPS location. (2) Backend finds eligible profiles within radius using geohash spatial query. (3) Filter out: already swiped, blocked, wrong gender/age preferences, inactive users. (4) Rank remaining profiles by: distance, activity recency, profile completeness, Elo-like attractiveness score, and compatibility signals. (5) Return top-N profiles as a 'card stack' for swiping.\n\nMatching: swipes are stored as (swiper_id, swipee_id, direction). On a right-swipe, check if a reverse swipe exists. If yes → create match → send push notifications to both → enable chat.\n\nScale challenge: with 50M active users, the 'already seen' set per user can grow to hundreds of thousands. Store as a Bloom filter (space-efficient) or compressed bitmap per user.",
+      realWorld: ["Tinder: 75M+ monthly users, 2B+ swipes/day", "Uses geosharding to partition users by location", "Processes 1.5M matches/day requiring real-time notifications"],
+    },
+  },
+  {
+    slug: "design-job-scheduler",
+    title: "Design Distributed Job Scheduler",
+    description: "Schedule and execute tasks across a cluster — cron jobs, delayed tasks, and recurring workflows",
+    category: "real-world",
+    difficulty: "Advanced",
+    icon: "⏰",
+    content: {
+      overview: "A distributed job scheduler manages the scheduling, execution, and monitoring of tasks across multiple machines. It handles one-time delayed jobs, recurring cron-like schedules, and complex DAG workflows. Core challenges include exactly-once execution, handling worker failures, and scaling to millions of jobs.",
+      keyPoints: [
+        "Job types: immediate, delayed (run at specific time), recurring (cron expression), DAG (job dependencies)",
+        "Exactly-once execution: use distributed locking or DB row-level locking to prevent two workers from picking the same job",
+        "Worker pool: workers pull jobs from a queue. Failed jobs are retried with exponential backoff and dead-letter queue",
+        "Scheduling: priority queue ordered by next execution time. Timer-based polling or database polling for due jobs",
+        "Observability: job status tracking (PENDING→RUNNING→SUCCESS/FAILED), execution logs, alerting on failures",
+      ],
+      explanation: "Architecture: (1) Scheduler Service: accepts job submissions, stores in database with next_run_at timestamp, manages recurring job re-scheduling. (2) Timer Service: polls database every second for jobs where next_run_at <= now(). Pushes due jobs to execution queue. (3) Worker Pool: workers pull jobs from the queue, execute them, report status.\n\nExactly-once guarantee: when the Timer Service picks up a job, it atomically updates the status to RUNNING with a lease_expiry timestamp (e.g., 5 minutes). If the worker crashes, the lease expires and another worker can pick it up. The worker checks idempotency keys before executing.\n\nCron scheduling: parse cron expression '0 9 * * 1' (every Monday at 9 AM). Compute next_run_at. After successful execution, compute the next occurrence and update next_run_at.\n\nDAG workflows: Job A → [Job B, Job C] → Job D. Store dependencies in a graph. When A completes, check if B and C's dependencies are met. When both B and C complete, trigger D.",
+      realWorld: ["Airflow: DAG-based workflow scheduler used at Airbnb, Spotify, PayPal", "Kubernetes CronJobs: built-in cron scheduling for containerized tasks", "Celery: distributed task queue for Python with 10K+ GitHub stars"],
+    },
+  },
+  {
+    slug: "design-location-service",
+    title: "Design Location-Based Service",
+    description: "Find nearby places, businesses, and points of interest — like Yelp or Google Places",
+    category: "real-world",
+    difficulty: "Intermediate",
+    icon: "📍",
+    content: {
+      overview: "A location-based service (LBS) helps users find nearby businesses, restaurants, and points of interest (POIs). Users can search by location and category, view business details, read/write reviews, and see ratings. Core challenges include efficient geospatial queries at scale and relevance ranking.",
+      keyPoints: [
+        "Geospatial indexing: geohash or QuadTree to efficiently query POIs within a radius or bounding box",
+        "Geohash: encode lat/lng into a string (e.g., '9q8yyk'). Nearby locations share a common prefix — range query on prefix",
+        "QuadTree: recursively divide 2D space into quadrants. Leaf nodes contain POIs. Efficient for variable-density areas",
+        "Search ranking: combine relevance (text match), distance, rating, review count, business status (open now)",
+        "Read-heavy: POI data rarely changes. Aggressive caching by geohash prefix + category",
+      ],
+      explanation: "Search flow: user searches 'pizza near me' at location (37.77, -122.42). (1) Geocode user location to geohash '9q8yyk'. (2) Query POI index for businesses with category='pizza' in geohash '9q8yyk' and adjacent 8 geohash cells. (3) Filter by distance radius (e.g., 5km). (4) Rank by: text relevance × (1/distance) × rating × log(review_count) × is_open_now. (5) Return top 20 results with business details.\n\nGeohash precision: length 4 = ~39km cell, length 5 = ~5km cell, length 6 = ~1.2km cell. For 'nearby' queries, use length 5-6 and check the cell + 8 neighbors to handle edge cases near cell boundaries.\n\nWrite path: business owners update their listing (hours, photos, menu). Updates go through a moderation queue, then update the POI database and invalidate geohash-based caches.\n\nReview system: reviews are stored per business. Rating is a running weighted average. Fake review detection uses ML models analyzing review patterns, user behavior, and text analysis.",
+      realWorld: ["Yelp: 200M+ reviews, geohash-based search across 30+ countries", "Google Places: billions of POIs with real-time business hours and busyness data", "Foursquare: location intelligence platform powering 150K+ apps"],
+    },
+  },
 ];
 
 export const getCategoryColor = (categoryId: string): string => {
