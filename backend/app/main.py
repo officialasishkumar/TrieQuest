@@ -565,6 +565,172 @@ def create_app() -> FastAPI:
         )
         return _serialize_group(group, current_user.id)
 
+    # ── Discover & Join Requests (must be before {group_id} routes) ─
+
+    @app.get("/api/groups/top", response_model=list[TopGroupSummary])
+    def top_groups(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> list[TopGroupSummary]:
+        groups = db.execute(
+            select(
+                Group.id,
+                Group.name,
+                Group.owner_id,
+                Group.created_at,
+                func.count(GroupMembership.id.distinct()).label("member_count"),
+                func.count(ProblemShare.id.distinct()).label("problem_count"),
+                func.max(ProblemShare.shared_at).label("last_active_at"),
+            )
+            .join(GroupMembership, GroupMembership.group_id == Group.id)
+            .outerjoin(ProblemShare, ProblemShare.group_id == Group.id)
+            .group_by(Group.id)
+            .having(func.count(GroupMembership.id.distinct()) > 1)
+            .order_by(func.count(ProblemShare.id.distinct()).desc(), func.count(GroupMembership.id.distinct()).desc())
+            .limit(20)
+        ).all()
+
+        if not groups:
+            return []
+
+        owner_ids = {g.owner_id for g in groups}
+        owners = {u.id: u.username for u in db.scalars(select(User).where(User.id.in_(owner_ids))).all()}
+
+        group_ids = [g.id for g in groups]
+        my_memberships = set(db.scalars(
+            select(GroupMembership.group_id).where(
+                GroupMembership.group_id.in_(group_ids),
+                GroupMembership.user_id == current_user.id,
+            )
+        ).all())
+
+        my_pending = set(db.scalars(
+            select(JoinRequest.group_id).where(
+                JoinRequest.group_id.in_(group_ids),
+                JoinRequest.user_id == current_user.id,
+                JoinRequest.status == "pending",
+            )
+        ).all())
+
+        results = []
+        for g in groups:
+            if g.id in my_memberships:
+                join_status = "member"
+            elif g.id in my_pending:
+                join_status = "pending"
+            else:
+                join_status = None
+            results.append(TopGroupSummary(
+                id=g.id,
+                name=g.name,
+                member_count=g.member_count,
+                problem_count=g.problem_count,
+                last_active_at=g.last_active_at,
+                owner_username=owners.get(g.owner_id, "unknown"),
+                join_status=join_status,
+            ))
+        return results
+
+    @app.get("/api/groups/join-requests", response_model=list[JoinRequestSummary])
+    def list_join_requests(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> list[JoinRequestSummary]:
+        requests = db.execute(
+            select(JoinRequest)
+            .join(Group, Group.id == JoinRequest.group_id)
+            .where(Group.owner_id == current_user.id, JoinRequest.status == "pending")
+            .options(joinedload(JoinRequest.user), joinedload(JoinRequest.group))
+            .order_by(JoinRequest.created_at.desc())
+        ).scalars().unique().all()
+
+        return [
+            JoinRequestSummary(
+                id=r.id,
+                group_id=r.group_id,
+                group_name=r.group.name,
+                user_id=r.user.id,
+                username=r.user.username,
+                display_name=r.user.display_name,
+                avatar_url=r.user.avatar_url,
+                status=r.status,
+                created_at=r.created_at,
+            )
+            for r in requests
+        ]
+
+    @app.post("/api/groups/join-requests/{request_id}/accept")
+    def accept_join_request(
+        request_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> dict[str, str]:
+        jr = db.scalar(
+            select(JoinRequest)
+            .where(JoinRequest.id == request_id, JoinRequest.status == "pending")
+            .options(joinedload(JoinRequest.group))
+        )
+        if jr is None or jr.group.owner_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Join request not found.")
+
+        jr.status = "accepted"
+        db.add(GroupMembership(group_id=jr.group_id, user_id=jr.user_id, role="member"))
+        db.commit()
+        return {"status": "accepted"}
+
+    @app.post("/api/groups/join-requests/{request_id}/reject")
+    def reject_join_request(
+        request_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> dict[str, str]:
+        jr = db.scalar(
+            select(JoinRequest)
+            .where(JoinRequest.id == request_id, JoinRequest.status == "pending")
+            .options(joinedload(JoinRequest.group))
+        )
+        if jr is None or jr.group.owner_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Join request not found.")
+
+        jr.status = "rejected"
+        db.commit()
+        return {"status": "rejected"}
+
+    # ── Group CRUD (parameterized routes) ────────────────────────────
+
+    @app.post("/api/groups/{group_id}/request-join", status_code=status.HTTP_201_CREATED)
+    def request_join_group(
+        group_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> dict[str, str]:
+        group = db.scalar(select(Group).where(Group.id == group_id))
+        if group is None:
+            raise HTTPException(status_code=404, detail="Group not found.")
+
+        already_member = db.scalar(
+            select(GroupMembership).where(
+                GroupMembership.group_id == group_id,
+                GroupMembership.user_id == current_user.id,
+            )
+        )
+        if already_member:
+            raise HTTPException(status_code=409, detail="You are already a member of this squad.")
+
+        existing = db.scalar(
+            select(JoinRequest).where(
+                JoinRequest.group_id == group_id,
+                JoinRequest.user_id == current_user.id,
+                JoinRequest.status == "pending",
+            )
+        )
+        if existing:
+            raise HTTPException(status_code=409, detail="You already have a pending request for this squad.")
+
+        db.add(JoinRequest(group_id=group_id, user_id=current_user.id))
+        db.commit()
+        return {"status": "pending"}
+
     @app.delete("/api/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
     def delete_group(
         group_id: int,
@@ -751,170 +917,6 @@ def create_app() -> FastAPI:
             .order_by(ProblemShare.shared_at.desc())
         ).all()
         return build_analytics(filter_problems_by_window(problems, window))
-
-    # ── Discover & Join Requests ────────────────────────────────────
-
-    @app.get("/api/groups/top", response_model=list[TopGroupSummary])
-    def top_groups(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ) -> list[TopGroupSummary]:
-        groups = db.execute(
-            select(
-                Group.id,
-                Group.name,
-                Group.owner_id,
-                Group.created_at,
-                func.count(GroupMembership.id.distinct()).label("member_count"),
-                func.count(ProblemShare.id.distinct()).label("problem_count"),
-                func.max(ProblemShare.shared_at).label("last_active_at"),
-            )
-            .join(GroupMembership, GroupMembership.group_id == Group.id)
-            .outerjoin(ProblemShare, ProblemShare.group_id == Group.id)
-            .group_by(Group.id)
-            .having(func.count(GroupMembership.id.distinct()) > 1)
-            .order_by(func.count(ProblemShare.id.distinct()).desc(), func.count(GroupMembership.id.distinct()).desc())
-            .limit(20)
-        ).all()
-
-        if not groups:
-            return []
-
-        owner_ids = {g.owner_id for g in groups}
-        owners = {u.id: u.username for u in db.scalars(select(User).where(User.id.in_(owner_ids))).all()}
-
-        group_ids = [g.id for g in groups]
-        my_memberships = set(db.scalars(
-            select(GroupMembership.group_id).where(
-                GroupMembership.group_id.in_(group_ids),
-                GroupMembership.user_id == current_user.id,
-            )
-        ).all())
-
-        my_pending = set(db.scalars(
-            select(JoinRequest.group_id).where(
-                JoinRequest.group_id.in_(group_ids),
-                JoinRequest.user_id == current_user.id,
-                JoinRequest.status == "pending",
-            )
-        ).all())
-
-        results = []
-        for g in groups:
-            if g.id in my_memberships:
-                join_status = "member"
-            elif g.id in my_pending:
-                join_status = "pending"
-            else:
-                join_status = None
-            results.append(TopGroupSummary(
-                id=g.id,
-                name=g.name,
-                member_count=g.member_count,
-                problem_count=g.problem_count,
-                last_active_at=g.last_active_at,
-                owner_username=owners.get(g.owner_id, "unknown"),
-                join_status=join_status,
-            ))
-        return results
-
-    @app.post("/api/groups/{group_id}/request-join", status_code=status.HTTP_201_CREATED)
-    def request_join_group(
-        group_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ) -> dict[str, str]:
-        group = db.scalar(select(Group).where(Group.id == group_id))
-        if group is None:
-            raise HTTPException(status_code=404, detail="Group not found.")
-
-        already_member = db.scalar(
-            select(GroupMembership).where(
-                GroupMembership.group_id == group_id,
-                GroupMembership.user_id == current_user.id,
-            )
-        )
-        if already_member:
-            raise HTTPException(status_code=409, detail="You are already a member of this squad.")
-
-        existing = db.scalar(
-            select(JoinRequest).where(
-                JoinRequest.group_id == group_id,
-                JoinRequest.user_id == current_user.id,
-                JoinRequest.status == "pending",
-            )
-        )
-        if existing:
-            raise HTTPException(status_code=409, detail="You already have a pending request for this squad.")
-
-        db.add(JoinRequest(group_id=group_id, user_id=current_user.id))
-        db.commit()
-        return {"status": "pending"}
-
-    @app.get("/api/groups/join-requests", response_model=list[JoinRequestSummary])
-    def list_join_requests(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ) -> list[JoinRequestSummary]:
-        requests = db.execute(
-            select(JoinRequest)
-            .join(Group, Group.id == JoinRequest.group_id)
-            .where(Group.owner_id == current_user.id, JoinRequest.status == "pending")
-            .options(joinedload(JoinRequest.user), joinedload(JoinRequest.group))
-            .order_by(JoinRequest.created_at.desc())
-        ).scalars().unique().all()
-
-        return [
-            JoinRequestSummary(
-                id=r.id,
-                group_id=r.group_id,
-                group_name=r.group.name,
-                user_id=r.user.id,
-                username=r.user.username,
-                display_name=r.user.display_name,
-                avatar_url=r.user.avatar_url,
-                status=r.status,
-                created_at=r.created_at,
-            )
-            for r in requests
-        ]
-
-    @app.post("/api/groups/join-requests/{request_id}/accept")
-    def accept_join_request(
-        request_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ) -> dict[str, str]:
-        jr = db.scalar(
-            select(JoinRequest)
-            .where(JoinRequest.id == request_id, JoinRequest.status == "pending")
-            .options(joinedload(JoinRequest.group))
-        )
-        if jr is None or jr.group.owner_id != current_user.id:
-            raise HTTPException(status_code=404, detail="Join request not found.")
-
-        jr.status = "accepted"
-        db.add(GroupMembership(group_id=jr.group_id, user_id=jr.user_id, role="member"))
-        db.commit()
-        return {"status": "accepted"}
-
-    @app.post("/api/groups/join-requests/{request_id}/reject")
-    def reject_join_request(
-        request_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user),
-    ) -> dict[str, str]:
-        jr = db.scalar(
-            select(JoinRequest)
-            .where(JoinRequest.id == request_id, JoinRequest.status == "pending")
-            .options(joinedload(JoinRequest.group))
-        )
-        if jr is None or jr.group.owner_id != current_user.id:
-            raise HTTPException(status_code=404, detail="Join request not found.")
-
-        jr.status = "rejected"
-        db.commit()
-        return {"status": "rejected"}
 
     # ── Challenges ───────────────────────────────────────────────────
 
