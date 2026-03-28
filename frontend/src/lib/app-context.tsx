@@ -5,6 +5,8 @@ interface AppContextType {
   setActiveGroup: (id: number | null) => void;
   showCreateGroup: boolean;
   setShowCreateGroup: (show: boolean) => void;
+  showDiscover: boolean;
+  setShowDiscover: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -15,6 +17,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return stored ? Number(stored) : null;
   });
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showDiscover, setShowDiscover] = useState(false);
 
   useEffect(() => {
     if (activeGroup) {
@@ -25,7 +28,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [activeGroup]);
 
   return (
-    <AppContext.Provider value={{ activeGroup, setActiveGroup, showCreateGroup, setShowCreateGroup }}>
+    <AppContext.Provider value={{ activeGroup, setActiveGroup, showCreateGroup, setShowCreateGroup, showDiscover, setShowDiscover }}>
       {children}
     </AppContext.Provider>
   );

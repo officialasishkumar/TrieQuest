@@ -23,7 +23,7 @@ import { DashboardSidebar } from "./Dashboard/DashboardSidebar";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { activeGroup, setActiveGroup, setShowCreateGroup } = useAppContext();
+  const { activeGroup, setActiveGroup, setShowCreateGroup, setShowDiscover } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterText, setFilterText] = useState("");
   const [showFilter, setShowFilter] = useState(false);
@@ -37,6 +37,12 @@ const Dashboard = () => {
     queryKey: ["groups"],
     queryFn: api.listGroups,
   });
+
+  const joinRequestsQuery = useQuery({
+    queryKey: ["joinRequests", "incoming"],
+    queryFn: api.listJoinRequests,
+  });
+  const pendingJoinCount = joinRequestsQuery.data?.length ?? 0;
 
   useEffect(() => {
     if (!groupsQuery.data?.length) {
@@ -177,6 +183,8 @@ const Dashboard = () => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         setShowCreateGroup={setShowCreateGroup}
+        setShowDiscover={setShowDiscover}
+        pendingJoinCount={pendingJoinCount}
         filteredGroups={filteredGroups}
         activeGroup={activeGroup}
         setActiveGroup={setActiveGroup}
