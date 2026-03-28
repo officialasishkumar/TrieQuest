@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Code2, Lock, Mail, User, Workflow, Layers3 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Code2, Loader2, Lock, Mail, User, Workflow, Layers3, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -56,13 +56,35 @@ const AuthPage = () => {
   const [favoriteTopic, setFavoriteTopic] = useState("");
   const [favoritePlatform, setFavoritePlatform] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [stats, setStats] = useState<GlobalStatsResponse | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, setSession } = useAuth();
 
   useEffect(() => {
     api.getGlobalStats().then(setStats).catch(console.error);
+  }, []);
+
+  const checkUsername = useCallback((value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const trimmed = value.trim();
+    if (trimmed.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const { available } = await api.checkUsername(trimmed);
+        setUsernameStatus(available ? "available" : "taken");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 300);
   }, []);
 
   if (isLoading) {
@@ -201,16 +223,41 @@ const AuthPage = () => {
                     required
                   />
                 </div>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    className="pl-11 h-12 text-base"
-                    required
-                  />
+                <div>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Username"
+                      value={username}
+                      onChange={(event) => {
+                        setUsername(event.target.value);
+                        checkUsername(event.target.value);
+                      }}
+                      className={`pl-11 pr-10 h-12 text-base ${
+                        usernameStatus === "taken"
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : usernameStatus === "available"
+                            ? "border-green-500 focus-visible:ring-green-500"
+                            : ""
+                      }`}
+                      required
+                    />
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                      {usernameStatus === "checking" && (
+                        <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                      )}
+                      {usernameStatus === "available" && (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      )}
+                      {usernameStatus === "taken" && (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                  {usernameStatus === "taken" && (
+                    <p className="text-sm text-red-500 mt-1">That username is already taken</p>
+                  )}
                 </div>
                 <div className="relative">
                   <Layers3 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -278,7 +325,7 @@ const AuthPage = () => {
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => { setIsLogin(!isLogin); setUsernameStatus("idle"); }}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}

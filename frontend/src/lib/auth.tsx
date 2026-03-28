@@ -9,6 +9,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, getStoredToken, setStoredToken } from "@/lib/api";
+import { captureEvent, identifyUser, resetUser } from "@/lib/posthog";
 import type { User } from "@/lib/types";
 
 type AuthContextValue = {
@@ -42,6 +43,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
   }, [meQuery.isError, queryClient]);
 
+  useEffect(() => {
+    if (meQuery.data) {
+      identifyUser(meQuery.data.id, {
+        email: meQuery.data.email,
+        username: meQuery.data.username,
+        display_name: meQuery.data.displayName,
+      });
+    }
+  }, [meQuery.data]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       token,
@@ -52,12 +63,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         setStoredToken(nextToken);
         setToken(nextToken);
         queryClient.setQueryData(["auth", "me", nextToken], user);
+        captureEvent("user_signed_in", { username: user.username });
       },
       updateUser: (user) => {
         if (!token) return;
         queryClient.setQueryData(["auth", "me", token], user);
       },
       logout: () => {
+        captureEvent("user_signed_out");
+        resetUser();
         setStoredToken(null);
         setToken(null);
         queryClient.clear();

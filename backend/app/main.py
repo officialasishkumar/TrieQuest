@@ -11,6 +11,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
+from app.admin import setup_admin
 from app.bootstrap import run_startup_tasks
 from app.config import get_settings
 from app.db import engine, get_db
@@ -46,6 +47,7 @@ from app.services.analytics import build_analytics, filter_problems_by_window
 from app.services.auth import find_user_by_identifier
 from app.services.metadata import PLATFORM_LABELS, normalize_difficulty_for_platform, resolve_problem
 from app.services.rate_limit import get_auth_rate_limiter, get_friend_lookup_rate_limiter
+from app.services.username_bloom import add_username, is_username_maybe_taken
 
 
 AnalyticsWindow = Literal["7d", "30d", "90d", "all"]
@@ -77,6 +79,8 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
+    setup_admin(app, engine)
+
     @app.get("/api/health")
     def health() -> dict[str, str]:
         try:
@@ -97,6 +101,16 @@ def create_app() -> FastAPI:
             problems_shared=problems_shared,
             active_members=active_members,
         )
+
+    @app.get("/api/auth/check-username")
+    def check_username(
+        username: str = Query(min_length=3, max_length=24),
+        db: Session = Depends(get_db),
+    ) -> dict[str, bool]:
+        if not is_username_maybe_taken(username):
+            return {"available": True}
+        exists = db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+        return {"available": not exists}
 
     @app.post("/api/auth/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
     def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
@@ -135,6 +149,7 @@ def create_app() -> FastAPI:
             ) from exc
 
         db.refresh(user)
+        add_username(user.username)
         return _token_response_for_user(user)
 
     @app.post("/api/auth/login", response_model=TokenResponse)

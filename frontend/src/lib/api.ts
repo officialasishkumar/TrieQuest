@@ -146,6 +146,11 @@ export const api = {
       body: JSON.stringify(input),
       skipAuth: true,
     }),
+  checkUsername: (username: string) =>
+    apiRequest<{ available: boolean }>(
+      `/api/auth/check-username?username=${encodeURIComponent(username)}`,
+      { skipAuth: true },
+    ),
   register: (input: {
     email: string;
     password: string;
