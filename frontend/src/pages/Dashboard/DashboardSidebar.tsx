@@ -1,4 +1,4 @@
-import { Plus, Search } from "lucide-react";
+import { Compass, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ type DashboardSidebarProps = {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   setShowCreateGroup: (show: boolean) => void;
+  setShowDiscover: (show: boolean) => void;
+  pendingJoinCount: number;
   filteredGroups: Group[];
   activeGroup: number | null;
   setActiveGroup: (id: number) => void;
@@ -18,6 +20,8 @@ export const DashboardSidebar = ({
   searchQuery,
   setSearchQuery,
   setShowCreateGroup,
+  setShowDiscover,
+  pendingJoinCount,
   filteredGroups,
   activeGroup,
   setActiveGroup,
@@ -43,6 +47,20 @@ export const DashboardSidebar = ({
         >
           <Plus className="w-4 h-4" />
           Create Squad
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full h-9 text-sm gap-1.5 relative"
+          onClick={() => setShowDiscover(true)}
+        >
+          <Compass className="w-4 h-4" />
+          Discover Squads
+          {pendingJoinCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              {pendingJoinCount}
+            </span>
+          )}
         </Button>
       </div>
 

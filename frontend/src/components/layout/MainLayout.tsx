@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, Code2, Compass, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
+import { BarChart3, Building2, Code2, Eye, FlaskConical, LogOut, Moon, Plus, Sun, Swords, UserCircle, Users } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { CreateGroupModal } from "@/components/CreateGroupModal";
 import { DiscoverModal } from "@/components/DiscoverModal";
 import { FriendsManager } from "@/components/FriendsManager";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProblemNotifications } from "@/hooks/use-problem-notifications";
 import { useTheme } from "@/hooks/use-theme";
 import { api } from "@/lib/api";
@@ -19,14 +20,13 @@ export const MainLayout = () => {
   useProblemNotifications();
 
   const [friendsManagerTab, setFriendsManagerTab] = useState<"friends" | "requests" | "search" | null>(null);
-  const [showDiscover, setShowDiscover] = useState(false);
 
   const { isDark, toggle: toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { activeGroup, setActiveGroup, showCreateGroup, setShowCreateGroup } = useAppContext();
+  const { activeGroup, setActiveGroup, showCreateGroup, setShowCreateGroup, showDiscover, setShowDiscover } = useAppContext();
 
   const friendRequestsQuery = useQuery({
     queryKey: ["friendRequests"],
@@ -41,7 +41,6 @@ export const MainLayout = () => {
   });
 
   const pendingRequestCount = friendRequestsQuery.data?.length ?? 0;
-  const pendingJoinCount = joinRequestsQuery.data?.length ?? 0;
 
   const createGroupMutation = useMutation({
     mutationFn: ({ name, memberIds }: { name: string; memberIds: number[] }) =>
@@ -92,100 +91,132 @@ export const MainLayout = () => {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 relative ${friendsManagerTab ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => setFriendsManagerTab(pendingRequestCount > 0 ? "requests" : "friends")}
-            >
-              <Users className="w-4.5 h-4.5" />
-              {pendingRequestCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {pendingRequestCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 relative ${showDiscover ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => setShowDiscover(true)}
-            >
-              <Compass className="w-4.5 h-4.5" />
-              {pendingJoinCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                  {pendingJoinCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/companies") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/companies")}
-            >
-              <Building2 className="w-4.5 h-4.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/challenges") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/challenges")}
-            >
-              <Swords className="w-4.5 h-4.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/visualize") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/visualize")}
-            >
-              <Eye className="w-4.5 h-4.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/test-generator") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/test-generator")}
-            >
-              <FlaskConical className="w-4.5 h-4.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/analytics") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate(activeGroup ? `/analytics?groupId=${activeGroup}` : "/analytics")}
-            >
-              <BarChart3 className="w-4.5 h-4.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={toggleTheme}>
-              {isDark ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-9 w-9 p-0 ${location.pathname.startsWith("/profile") ? "bg-accent text-accent-foreground" : ""}`}
-              onClick={() => navigate("/profile")}
-            >
-              {user?.avatarUrl ? (
-                <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-primary/20 bg-secondary flex items-center justify-center">
-                  <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <UserCircle className="w-4.5 h-4.5" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0"
-              onClick={() => {
-                logout();
-                navigate("/auth");
-              }}
-            >
-              <LogOut className="w-4.5 h-4.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 relative ${friendsManagerTab ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => setFriendsManagerTab(pendingRequestCount > 0 ? "requests" : "friends")}
+                >
+                  <Users className="w-4.5 h-4.5" />
+                  {pendingRequestCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {pendingRequestCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Friends</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/companies") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/companies")}
+                >
+                  <Building2 className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Company Problems</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/challenges") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/challenges")}
+                >
+                  <Swords className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Challenges</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/visualize") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/visualize")}
+                >
+                  <Eye className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Visualize</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/test-generator") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/test-generator")}
+                >
+                  <FlaskConical className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Test Generator</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/analytics") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate(activeGroup ? `/analytics?groupId=${activeGroup}` : "/analytics")}
+                >
+                  <BarChart3 className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Analytics</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={toggleTheme}>
+                  {isDark ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isDark ? "Light Mode" : "Dark Mode"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-9 w-9 p-0 ${location.pathname.startsWith("/profile") ? "bg-accent text-accent-foreground" : ""}`}
+                  onClick={() => navigate("/profile")}
+                >
+                  {user?.avatarUrl ? (
+                    <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-primary/20 bg-secondary flex items-center justify-center">
+                      <img src={user.avatarUrl} alt={user.displayName} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <UserCircle className="w-4.5 h-4.5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Profile</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0"
+                  onClick={() => {
+                    logout();
+                    navigate("/auth");
+                  }}
+                >
+                  <LogOut className="w-4.5 h-4.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Log Out</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </header>
