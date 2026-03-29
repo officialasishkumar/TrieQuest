@@ -14,11 +14,27 @@ from app.security import hash_password
 from app.services.rate_limit import FixedWindowRateLimiter
 
 
+def test_admin_routes_are_disabled_by_default(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    get_settings.cache_clear()
+
+    try:
+        app = main_module.create_app()
+
+        with TestClient(app) as client:
+            response = client.get("/admin/login")
+
+        assert response.status_code == 404
+    finally:
+        get_settings.cache_clear()
+
+
 def test_admin_login_uses_email_label_and_accepts_email_field(monkeypatch) -> None:
     monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
     monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
     monkeypatch.setenv("TRIEQUEST_ENABLE_ADMIN", "true")
-    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "officialasishkumar@gmail.com")
+    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "admin@example.com")
     get_settings.cache_clear()
 
     engine = create_engine(
@@ -33,7 +49,7 @@ def test_admin_login_uses_email_label_and_accepts_email_field(monkeypatch) -> No
     with Session(engine) as db:
         db.add(
             User(
-                email="officialasishkumar@gmail.com",
+                email="admin@example.com",
                 username="asish",
                 display_name="Asish Kumar",
                 bio="",
@@ -59,7 +75,7 @@ def test_admin_login_uses_email_label_and_accepts_email_field(monkeypatch) -> No
 
             login_response = client.post(
                 "/admin/login",
-                data={"email": "officialasishkumar@gmail.com", "password": "TrieQuest!123"},
+                data={"email": "admin@example.com", "password": "TrieQuest!123"},
                 follow_redirects=False,
             )
 
@@ -76,7 +92,7 @@ def test_admin_login_is_rate_limited(monkeypatch) -> None:
     monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
     monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
     monkeypatch.setenv("TRIEQUEST_ENABLE_ADMIN", "true")
-    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "officialasishkumar@gmail.com")
+    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "admin@example.com")
     get_settings.cache_clear()
 
     engine = create_engine(
@@ -91,7 +107,7 @@ def test_admin_login_is_rate_limited(monkeypatch) -> None:
     with Session(engine) as db:
         db.add(
             User(
-                email="officialasishkumar@gmail.com",
+                email="admin@example.com",
                 username="asish",
                 display_name="Asish Kumar",
                 bio="",
@@ -105,11 +121,8 @@ def test_admin_login_is_rate_limited(monkeypatch) -> None:
 
     monkeypatch.setattr(main_module, "engine", engine)
     monkeypatch.setattr(db_module, "SessionLocal", session_local)
-    monkeypatch.setattr(
-        admin_module,
-        "get_admin_rate_limiter",
-        lambda: FixedWindowRateLimiter(max_attempts=2, window_seconds=300),
-    )
+    limiter = FixedWindowRateLimiter(max_attempts=2, window_seconds=300)
+    monkeypatch.setattr(admin_module, "get_admin_rate_limiter", lambda: limiter)
 
     try:
         app = main_module.create_app()
@@ -118,14 +131,14 @@ def test_admin_login_is_rate_limited(monkeypatch) -> None:
             for _ in range(2):
                 response = client.post(
                     "/admin/login",
-                    data={"email": "officialasishkumar@gmail.com", "password": "wrong-password"},
+                    data={"email": "admin@example.com", "password": "wrong-password"},
                     follow_redirects=False,
                 )
                 assert response.status_code == 400
 
             blocked_response = client.post(
                 "/admin/login",
-                data={"email": "officialasishkumar@gmail.com", "password": "wrong-password"},
+                data={"email": "admin@example.com", "password": "wrong-password"},
                 follow_redirects=False,
             )
 
