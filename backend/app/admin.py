@@ -24,6 +24,11 @@ from app.security import verify_password
 from app.services.rate_limit import get_admin_rate_limiter
 
 
+def _build_admin_rate_limit_key(request: Request, email: str) -> str:
+    client_host = request.client.host if request.client is not None else "unknown"
+    return f"{client_host}:{email.strip().lower()}"
+
+
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
@@ -227,8 +232,3 @@ def setup_admin(app, engine) -> Admin:
     admin.add_view(ChallengeParticipantAdmin)
     admin.add_view(ChallengeProblemAdmin)
     return admin
-
-
-def _build_admin_rate_limit_key(request: Request, email: str) -> str:
-    client_host = request.client.host if request.client is not None else "unknown"
-    return f"{client_host}:{email.strip().lower()}"

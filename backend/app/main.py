@@ -334,7 +334,6 @@ def create_app() -> FastAPI:
                 or_(
                     User.username.ilike(pattern),
                     User.display_name.ilike(pattern),
-                    User.email.ilike(pattern),
                 ),
             )
             .order_by(User.display_name.asc())

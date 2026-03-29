@@ -21,8 +21,9 @@ uvicorn app.main:app --reload --port 8000
 ## Key Settings
 
 - Local development defaults to SQLite.
-- Production requires MySQL, a non-default `TRIEQUEST_SECRET_KEY` that is at least 32 characters long, and demo seeding disabled.
+- Production requires MySQL, a non-default `TRIEQUEST_SECRET_KEY` that is at least 32 characters long, API docs disabled, and demo seeding disabled.
 - `TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS` control login throttling.
+- `TRIEQUEST_ADMIN_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS` control admin login throttling.
 - `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS` control friend-search throttling.
 - `TRIEQUEST_ENABLE_ADMIN` stays `false` by default; only enable it together with `TRIEQUEST_ADMIN_EMAILS`.
 

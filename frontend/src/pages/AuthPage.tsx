@@ -12,8 +12,26 @@ import { getAuthErrorContent } from "@/lib/auth-errors";
 import type { GlobalStatsResponse } from "@/lib/types";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+const GOOGLE_OAUTH_STATE_STORAGE_KEY = "triequest-google-oauth-state";
+
+const createGoogleOAuthState = () => {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 const buildGoogleOAuthUrl = () => {
+  const state = createGoogleOAuthState();
+  window.sessionStorage.setItem(GOOGLE_OAUTH_STATE_STORAGE_KEY, state);
+
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: `${window.location.origin}/auth/google/callback`,
@@ -21,6 +39,7 @@ const buildGoogleOAuthUrl = () => {
     scope: "openid email profile",
     access_type: "offline",
     prompt: "consent",
+    state,
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 };
@@ -314,9 +333,13 @@ const AuthPage = () => {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="pl-11 h-12 text-base"
+                minLength={isLogin ? 1 : 10}
                 required
               />
             </div>
+            {!isLogin && (
+              <p className="text-sm text-muted-foreground">Use at least 10 characters for your password.</p>
+            )}
             <Button type="submit" className="w-full h-12 text-base font-semibold gap-2 mt-2" disabled={isSubmitting}>
               {isSubmitting ? "Please wait" : isLogin ? "Sign in" : "Create account"}
               <ArrowRight className="w-5 h-5" />
