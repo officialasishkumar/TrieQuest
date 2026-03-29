@@ -1,0 +1,231 @@
+%-------------------------
+% Resume in Latex
+% Author : Asish Kumar (migrated from oldresume)
+% Based off of: https://github.com/sb2nov/resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref} % hidelinks removes boxes/colors
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{iftex}
+\ifPDFTeX
+  \input{glyphtounicode}
+\fi
+
+
+%----------FONT OPTIONS----------
+% sans-serif
+% \usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\ifPDFTeX
+  \pdfgentounicode=1
+\fi
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Asish Kumar} \\ \vspace{1pt}
+    \small +919204664622 $|$ \href{mailto:officialasishkumar@gmail.com}{officialasishkumar@gmail.com} $|$ 
+    \href{https://www.linkedin.com/in/asish-kr/}{Linkedin} $|$
+    \href{https://github.com/officialasishkumar}{Github}
+\end{center}
+
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Bharati Vidyapeeth's College of Engineering, New Delhi}{New Delhi, India} % College Name & Location
+      {B. Tech. - Information Technology; GPA - 8.2/10}{December 2021 -- June 2025} % Degree, GPA & Dates
+  \resumeSubHeadingListEnd
+
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheading
+{Keploy}{Bangalore, Karnataka, India}
+{Software Engineer}{August 2025 - Present}
+\resumeItemListStart
+    \resumeItem{Developed a test de-duplication feature using UNIX sockets, removing redundant cases to enhance test accuracy.}
+    \resumeItem{Deployed a high-performance secret sanitization feature to secure over 1,000 test cases in under 30 seconds.}
+    \resumeItem{Built a MongoDB mocking engine that decodes the native wire protocol to accurately record database calls and uses a concurrent, fingerprint-based algorithm to instantly match live requests to the correct mock.}
+    \resumeItem{Built a Playwright-based Kubernetes regression pipeline for Keploy's cloud record-replay flow, provisioning Kind clusters in CI and hardening UI/API replay checks to catch end-to-end failures reliably.}
+    \resumeItem{Resolved 50+ customer-reported issues in Keploy for Allen, an enterprise customer, delivering product bug fixes and feature enhancements across the record-replay platform.}
+\resumeItemListEnd
+
+    \resumeSubheading
+      {Google Summer of Code}{Remote} % Company & Location
+      {Open Source Contributor @CHAOSS}{May 2025 -- August 2025}
+        \resumeItemListStart
+              \resumeItem{Delivered an end-to-end contributor analytics feature, creating a new data model and collection worker in Augur to process community engagement.}
+            \resumeItem{Designed funnel and radar charts in 8Knot to visualize contributor retention and activity for project maintainers.}
+        \resumeItemListEnd
+
+      \resumeSubheading
+      {Narration Box}{Remote}
+      {Software Engineering Intern}{January 2025 -- May 2025}
+      \resumeItemListStart
+        \resumeItem{Drove a 60\% increase in weekly active users by launching and optimizing new feature sets.}
+        \resumeItem{Designed and implemented RESTful APIs using Django REST Framework and integrated Hasura for a real-time GraphQL layer, supporting the core AI narration service.} 
+      \resumeItemListEnd
+    
+    \resumeSubheading
+      {Google Summer of Code}{Remote} % Program/Org & Location
+      {Open Source Contributor @TARDIS-SN}{May 2024 -- September 2024} % Role & Dates
+      \resumeItemListStart
+        \resumeItem{Implemented 30 benchmarks covering 80\% of the codebase, boosting test reliability and performance coverage.}
+        \resumeItem{Optimized GitHub Actions with caching, setup, and custom parameters, cutting runtime by 20\%.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Linux Foundation Mentorship Program}{Remote} % Program/Org & Location
+      {Open Source Contributor @KCL Language}{June 2024 -- August 2024} % Role & Dates
+      \resumeItemListStart
+        \resumeItem{Implemented Sparse-checkout, enabling KPM to add a repo sub-directory as a 3rd-party dependency.}
+        \resumeItem{Added new unit tests that cover 600+ lines of code and improved the overall coverage to 40.616\%.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+
+%-----------PROJECTS-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+      \resumeProjectHeading
+          {\textbf{SQL Cache} $|$ \emph{Go, MySQL, Docker, REST APIs} $|$ \href{https://github.com/officialasishkumar/sql-cache}{GitHub}}{March 2026} % Project Name, Tech, Link & Date
+          \resumeItemListStart
+            \resumeItem{Built a production-style Go backend backed by MySQL and Docker Compose, exposing REST endpoints for customers, products, and orders.}
+            \resumeItem{Integrated a SQL record-and-replay layer that captures live query responses into YAML mocks and replays them in offline mode without a running database.}
+            \resumeItem{Improved MySQL compatibility in the caching layer by normalizing byte-encoded values during capture and replay, making mocks human-readable and reliable for local development.}
+          \resumeItemListEnd
+      \resumeProjectHeading
+          {\textbf{TrieQuest} $|$ \emph{React, TypeScript, FastAPI, SQLAlchemy, MySQL, Docker, Three.js, Playwright} $|$ \href{https://github.com/officialasishkumar/TrieQuest}{GitHub}}{March 2026} % Project Name, Tech, Link & Date
+          \resumeItemListStart
+            \resumeItem{Built a full-stack competitive programming platform where users form squads, share problems from 8 coding platforms, track analytics, and create challenges -- deployed on Vercel and Render with a Dockerized MySQL backend.}
+            \resumeItem{Designed a Trie-based autocomplete engine for O(k) prefix search on usernames and problem titles, replacing SQL ILIKE with an in-memory index populated at startup and kept in sync on writes.}
+            \resumeItem{Implemented an in-memory Bloom filter with SHA-256 double-hashing for O(1) username availability checks, eliminating redundant database queries during registration.}
+            \resumeItem{Developed a multi-dimensional analytics engine with time-window filtering, platform-specific difficulty mapping, activity trends, and leaderboards visualized via Recharts.}
+            \resumeItem{Secured the API with JWT + Argon2 hashing, fixed-window rate limiting, CORS hardening, and engineered 12 interactive algorithm visualizations from scratch with React and Framer Motion.}
+          \resumeItemListEnd
+      
+    \resumeSubHeadingListEnd
+
+
+%-----------ACHIEVEMENTS-----------
+\section{Achievements}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \item\small{
+        \begin{itemize}[leftmargin=0in, itemsep=1pt, topsep=2pt]
+            \item {Rated \href{https://codeforces.com/profile/AsishKumar}{Specialist} on CodeForces with max rating: 1469, solving over 1350+ problems.}
+            \item {Knight with 1850+ rating (top 5.5\%) on \href{https://leetcode.com/u/openSUSE/}{Leetcode}, solving over 600+ problems.}
+            \item {Qualified For ACM ICPC onsite regionals, 2022 held at Mathura, Uttar Pradesh.}
+        \end{itemize}
+    }
+ \end{itemize}
+
+
+%-----------PROGRAMMING SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Languages (4)}{: Python, Go, JavaScript, SQL, HTML, CSS} \\
+     \textbf{Frameworks/Libraries (12)}{: React.js, Next.js, Node.js, Express.js, GraphQL, Zustand, SocketIO, airspeed velocity, cProfile, memray} \\ 
+     \textbf{Developer Tools (7)}{: Git, Docker, MongoDB, Linux shell, RudderStack, GitHub Actions, MySQL} \\ 
+     \textbf{Concepts (3)}{: Data Structures \& Algorithms, DBMS Fundamentals, Computer Networks Fundamentals}
+    }}
+ \end{itemize}
+
+
+%-------------------------------------------
+\end{document}
+

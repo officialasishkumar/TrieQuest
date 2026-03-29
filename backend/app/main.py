@@ -49,6 +49,7 @@ from app.services.analytics import build_analytics, filter_problems_by_window
 from app.services.auth import find_user_by_identifier
 from app.services.metadata import PLATFORM_LABELS, normalize_difficulty_for_platform, resolve_problem
 from app.services.rate_limit import get_auth_rate_limiter, get_friend_lookup_rate_limiter
+from app.services.trie import add_problem_to_trie, add_username_to_trie, search_problems, search_usernames
 from app.services.username_bloom import add_username, is_username_maybe_taken
 
 
@@ -152,6 +153,7 @@ def create_app() -> FastAPI:
 
         db.refresh(user)
         add_username(user.username)
+        add_username_to_trie(user.username)
         return _token_response_for_user(user)
 
     @app.post("/api/auth/login", response_model=TokenResponse)
@@ -348,6 +350,20 @@ def create_app() -> FastAPI:
             )
             for user in users
         ]
+
+    @app.get("/api/autocomplete/users", response_model=list[str])
+    def autocomplete_users(
+        q: str = Query(min_length=1, max_length=50),
+        _current_user: User = Depends(get_current_user),
+    ) -> list[str]:
+        return search_usernames(q.strip().lstrip("@"), limit=10)
+
+    @app.get("/api/autocomplete/problems", response_model=list[str])
+    def autocomplete_problems(
+        q: str = Query(min_length=1, max_length=100),
+        _current_user: User = Depends(get_current_user),
+    ) -> list[str]:
+        return search_problems(q.strip(), limit=10)
 
     @app.get("/api/friends/list", response_model=list[FriendUser])
     def list_friends(
@@ -850,6 +866,7 @@ def create_app() -> FastAPI:
         db.add(problem)
         db.commit()
         db.refresh(problem)
+        add_problem_to_trie(problem.title)
         problem = db.scalar(select(ProblemShare).where(ProblemShare.id == problem.id).options(joinedload(ProblemShare.shared_by)))
         return _serialize_problem(problem)
 
