@@ -16,6 +16,7 @@ class GoogleUser:
     email: str
     name: str
     picture: str | None
+    email_verified: bool
 
 
 async def exchange_code_for_user(code: str) -> GoogleUser:
@@ -50,4 +51,5 @@ async def exchange_code_for_user(code: str) -> GoogleUser:
         email=info["email"],
         name=info.get("name", info["email"].split("@")[0]),
         picture=info.get("picture"),
+        email_verified=bool(info.get("verified_email") or info.get("verifiedEmail")),
     )

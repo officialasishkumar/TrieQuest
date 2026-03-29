@@ -64,3 +64,33 @@ def test_settings_accept_database_ssl_configuration() -> None:
     assert settings.database_ssl_ca_path == "/etc/ssl/certs/ca-certificates.crt"
     assert settings.database_ssl_verify_cert is True
     assert settings.database_ssl_verify_identity is True
+
+
+def test_settings_accept_and_normalize_admin_emails_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", " Admin@Example.com,admin@example.com,ops@example.com ")
+
+    settings = Settings()
+
+    assert settings.admin_emails == ["admin@example.com", "ops@example.com"]
+
+
+def test_production_settings_reject_wildcard_cors_origins() -> None:
+    with pytest.raises(ValidationError, match="wildcard CORS origins"):
+        Settings(
+            environment="production",
+            database_url="mysql+pymysql://user:pass@db:3306/triequest",
+            secret_key="this-is-a-long-enough-secret-for-production",
+            seed_demo_data=False,
+            cors_origins=["*"],
+        )
+
+
+def test_production_settings_require_admin_emails_when_admin_is_enabled() -> None:
+    with pytest.raises(ValidationError, match="TRIEQUEST_ADMIN_EMAILS"):
+        Settings(
+            environment="production",
+            database_url="mysql+pymysql://user:pass@db:3306/triequest",
+            secret_key="this-is-a-long-enough-secret-for-production",
+            seed_demo_data=False,
+            enable_admin=True,
+        )

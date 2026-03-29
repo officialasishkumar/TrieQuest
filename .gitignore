@@ -106,3 +106,7 @@ Thumbs.db
 *.sln
 *.sw?
 .vercel
+.claude/
+.playwright-cli/
+output/
+CLAUDE.md

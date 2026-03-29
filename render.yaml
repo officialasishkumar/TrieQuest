@@ -28,6 +28,8 @@ services:
         value: "true"
       - key: TRIEQUEST_SEED_DEMO_DATA
         value: "false"
+      - key: TRIEQUEST_ENABLE_ADMIN
+        value: "false"
       - key: TRIEQUEST_ENABLE_DOCS
         value: "false"
       - key: TRIEQUEST_WEB_CONCURRENCY

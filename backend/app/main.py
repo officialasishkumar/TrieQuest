@@ -82,7 +82,8 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
-    setup_admin(app, engine)
+    if settings.enable_admin:
+        setup_admin(app, engine)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -189,6 +190,12 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Google authentication failed. Please try again.",
+            )
+
+        if not google_user.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Google account email must be verified before sign-in.",
             )
 
         user = db.scalar(select(User).where(User.google_id == google_user.google_id))

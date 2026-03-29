@@ -21,17 +21,26 @@ from app.models import (
     User,
 )
 from app.security import verify_password
-
-ADMIN_EMAILS = {"officialasishkumar@gmail.com"}
+from app.services.rate_limit import get_admin_rate_limiter
 
 
 class AdminAuth(AuthenticationBackend):
     async def login(self, request: Request) -> bool:
         form = await request.form()
-        email = form.get("email", form.get("username", ""))
-        password = form.get("password", "")
+        email = str(form.get("email", form.get("username", ""))).strip().lower()
+        password = str(form.get("password", ""))
 
         if not email or not password:
+            return False
+
+        configured_admin_emails = set(get_settings().admin_emails)
+        if not configured_admin_emails:
+            return False
+
+        limiter = get_admin_rate_limiter()
+        rate_limit_key = _build_admin_rate_limit_key(request, email)
+        rate_limit_decision = limiter.check(rate_limit_key)
+        if not rate_limit_decision.allowed:
             return False
 
         from app.db import SessionLocal
@@ -40,13 +49,17 @@ class AdminAuth(AuthenticationBackend):
         with SessionLocal() as db:
             user = db.scalar(select(User).where(func.lower(User.email) == str(email).lower()))
             if not user or not user.password_hash:
+                limiter.record_failure(rate_limit_key)
                 return False
-            if user.email.lower() not in ADMIN_EMAILS:
+            if user.email.lower() not in configured_admin_emails:
+                limiter.record_failure(rate_limit_key)
                 return False
             if not verify_password(str(password), user.password_hash):
+                limiter.record_failure(rate_limit_key)
                 return False
 
-        request.session.update({"admin_email": user.email})
+        limiter.clear(rate_limit_key)
+        request.session.update({"admin_email": user.email.lower()})
         return True
 
     async def logout(self, request: Request) -> bool:
@@ -54,10 +67,10 @@ class AdminAuth(AuthenticationBackend):
         return True
 
     async def authenticate(self, request: Request) -> bool:
-        email = request.session.get("admin_email")
+        email = str(request.session.get("admin_email", "")).lower()
         if not email:
             return False
-        return email.lower() in ADMIN_EMAILS
+        return email in set(get_settings().admin_emails)
 
 
 class UserAdmin(ModelView, model=User):
@@ -214,3 +227,8 @@ def setup_admin(app, engine) -> Admin:
     admin.add_view(ChallengeParticipantAdmin)
     admin.add_view(ChallengeProblemAdmin)
     return admin
+
+
+def _build_admin_rate_limit_key(request: Request, email: str) -> str:
+    client_host = request.client.host if request.client is not None else "unknown"
+    return f"{client_host}:{email.strip().lower()}"
