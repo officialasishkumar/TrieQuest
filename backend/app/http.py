@@ -10,6 +10,10 @@ def install_security_middleware(app: FastAPI, *, environment: str) -> None:
 
         if request.url.path.startswith("/api/"):
             response.headers.setdefault("Cache-Control", "no-store")
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+            )
 
         response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
         response.headers.setdefault("Referrer-Policy", "no-referrer")

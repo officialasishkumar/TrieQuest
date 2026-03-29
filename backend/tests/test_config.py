@@ -81,7 +81,31 @@ def test_production_settings_reject_wildcard_cors_origins() -> None:
             database_url="mysql+pymysql://user:pass@db:3306/triequest",
             secret_key="this-is-a-long-enough-secret-for-production",
             seed_demo_data=False,
+            enable_docs=False,
             cors_origins=["*"],
+        )
+
+
+def test_production_settings_require_docs_to_be_disabled() -> None:
+    with pytest.raises(ValidationError, match="disable API docs"):
+        Settings(
+            environment="production",
+            database_url="mysql+pymysql://user:pass@db:3306/triequest",
+            secret_key="this-is-a-long-enough-secret-for-production",
+            seed_demo_data=False,
+            enable_docs=True,
+        )
+
+
+def test_production_settings_require_https_cors_origins() -> None:
+    with pytest.raises(ValidationError, match="must use HTTPS"):
+        Settings(
+            environment="production",
+            database_url="mysql+pymysql://user:pass@db:3306/triequest",
+            secret_key="this-is-a-long-enough-secret-for-production",
+            seed_demo_data=False,
+            enable_docs=False,
+            cors_origins=["http://frontend.example.com"],
         )
 
 
@@ -92,5 +116,6 @@ def test_production_settings_require_admin_emails_when_admin_is_enabled() -> Non
             database_url="mysql+pymysql://user:pass@db:3306/triequest",
             secret_key="this-is-a-long-enough-secret-for-production",
             seed_demo_data=False,
+            enable_docs=False,
             enable_admin=True,
         )

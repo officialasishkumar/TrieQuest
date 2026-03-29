@@ -108,5 +108,5 @@ Thumbs.db
 .vercel
 .claude/
 .playwright-cli/
-output/
 CLAUDE.md
+output/

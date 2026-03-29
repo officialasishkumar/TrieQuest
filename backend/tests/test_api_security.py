@@ -65,6 +65,9 @@ def test_login_rate_limiting_and_security_headers(monkeypatch) -> None:
             )
             assert response.status_code == 401
             assert response.headers["cache-control"] == "no-store"
+            assert response.headers["content-security-policy"] == (
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+            )
             assert response.headers["x-content-type-options"] == "nosniff"
 
         blocked_response = client.post(
@@ -75,6 +78,23 @@ def test_login_rate_limiting_and_security_headers(monkeypatch) -> None:
     assert blocked_response.status_code == 429
     retry_after = int(blocked_response.headers["retry-after"])
     assert 1 <= retry_after <= 300
+
+
+def test_admin_routes_are_absent_when_admin_is_disabled(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    monkeypatch.delenv("TRIEQUEST_ENABLE_ADMIN", raising=False)
+    get_settings.cache_clear()
+
+    try:
+        app = main_module.create_app()
+
+        with TestClient(app) as client:
+            response = client.get("/admin/login")
+
+        assert response.status_code == 404
+    finally:
+        get_settings.cache_clear()
 
 
 def test_docs_can_be_disabled(monkeypatch) -> None:
