@@ -149,3 +149,17 @@ def test_friend_lookup_is_rate_limited(monkeypatch) -> None:
     assert blocked_response.status_code == 429
     retry_after = int(blocked_response.headers["retry-after"])
     assert 1 <= retry_after <= 300
+
+
+def test_friend_search_does_not_match_email_addresses(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    get_settings.cache_clear()
+
+    client, _, current_user_id = _build_client()
+    headers = _auth_headers(current_user_id)
+
+    response = client.get("/api/friends/search", params={"q": "example.com"}, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == []

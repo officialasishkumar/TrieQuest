@@ -5,10 +5,12 @@ from datetime import datetime
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.validation import (
+    MIN_PASSWORD_LENGTH,
     normalize_bio_text,
     normalize_optional_text,
     normalize_required_text,
     normalize_username,
+    validate_password,
     validate_problem_url,
     validate_profile_image_url,
 )
@@ -44,7 +46,7 @@ class RegisterRequest(APIModel):
     email: EmailStr
     username: str = Field(min_length=3, max_length=24)
     display_name: str = Field(min_length=2, max_length=120)
-    password: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=128, description=f"At least {MIN_PASSWORD_LENGTH} characters.")
     favorite_topic: str | None = Field(default=None, max_length=120)
     favorite_platform: str | None = Field(default=None, max_length=120)
 
@@ -57,6 +59,11 @@ class RegisterRequest(APIModel):
     @classmethod
     def normalize_display_name(cls, value: str) -> str:
         return normalize_required_text(value, field_name="Display name")
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_value(cls, value: str) -> str:
+        return validate_password(value)
 
     @field_validator("favorite_topic")
     @classmethod

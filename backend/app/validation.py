@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 
 LOCAL_HTTP_HOSTS = {"localhost", "127.0.0.1"}
+MIN_PASSWORD_LENGTH = 10
 
 
 def normalize_username(value: str, *, field_name: str = "Username", allow_at_prefix: bool = False) -> str:
@@ -74,6 +75,15 @@ def validate_problem_url(value: str) -> str:
     if parsed.scheme != "https":
         raise ValueError("Problem URL must use HTTPS.")
     return cleaned
+
+
+def validate_password(value: str) -> str:
+    if not value.strip():
+        raise ValueError("Password cannot be blank.")
+    if len(value) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters long.")
+    _ensure_no_control_characters(value, field_name="Password")
+    return value
 
 
 def _parse_http_url(value: str, *, field_name: str):

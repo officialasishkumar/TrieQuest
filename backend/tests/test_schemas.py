@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas import GroupCreateRequest, LoginRequest, ProblemCreateRequest, ProfileUpdateRequest, RegisterRequest
+from app.validation import MIN_PASSWORD_LENGTH
 
 
 def test_register_request_accepts_frontend_camel_case_payload() -> None:
@@ -57,16 +58,16 @@ def test_login_request_accepts_identifier_or_email_payload() -> None:
     assert email_payload.identifier == "alex@example.com"
 
 
-def test_register_request_accepts_any_non_empty_password() -> None:
-    payload = RegisterRequest.model_validate(
-        {
-            "email": "alex@example.com",
-            "username": "alex_user",
-            "displayName": "Alex Rivera",
-            "password": "short",
-        }
-    )
-    assert payload.password == "short"
+def test_register_request_rejects_short_passwords() -> None:
+    with pytest.raises(ValidationError, match=f"at least {MIN_PASSWORD_LENGTH} characters"):
+        RegisterRequest.model_validate(
+            {
+                "email": "alex@example.com",
+                "username": "alex_user",
+                "displayName": "Alex Rivera",
+                "password": "short",
+            }
+        )
 
 
 def test_profile_and_problem_urls_reject_unsafe_schemes() -> None:

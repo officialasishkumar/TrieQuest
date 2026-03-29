@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+const GOOGLE_OAUTH_STATE_STORAGE_KEY = "triequest-google-oauth-state";
+
 const GoogleCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -17,8 +19,18 @@ const GoogleCallback = () => {
     calledRef.current = true;
 
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
+    const storedState = window.sessionStorage.getItem(GOOGLE_OAUTH_STATE_STORAGE_KEY);
+    window.sessionStorage.removeItem(GOOGLE_OAUTH_STATE_STORAGE_KEY);
+
     if (!code) {
       toast.error("Google sign-in failed", { description: "No authorization code received." });
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    if (!state || !storedState || state !== storedState) {
+      toast.error("Google sign-in failed", { description: "The sign-in session expired or was invalid. Please try again." });
       navigate("/auth", { replace: true });
       return;
     }
