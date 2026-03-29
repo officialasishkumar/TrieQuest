@@ -91,3 +91,12 @@ def get_friend_lookup_rate_limiter() -> FixedWindowRateLimiter:
         max_attempts=settings.friend_lookup_rate_limit_max_attempts,
         window_seconds=settings.friend_lookup_rate_limit_window_seconds,
     )
+
+
+@lru_cache
+def get_admin_rate_limiter() -> FixedWindowRateLimiter:
+    settings = get_settings()
+    return FixedWindowRateLimiter(
+        max_attempts=settings.admin_rate_limit_max_attempts,
+        window_seconds=settings.admin_rate_limit_window_seconds,
+    )

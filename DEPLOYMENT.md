@@ -55,6 +55,8 @@ TRIEQUEST_CORS_ORIGINS=https://trie-quest.vercel.app
 TRIEQUEST_ALLOWED_HOSTS=triequest-api.onrender.com,127.0.0.1,localhost
 TRIEQUEST_DATABASE_AUTO_MIGRATE=true
 TRIEQUEST_SEED_DEMO_DATA=false
+TRIEQUEST_ENABLE_ADMIN=false
+TRIEQUEST_ADMIN_EMAILS=
 TRIEQUEST_ENABLE_DOCS=false
 TRIEQUEST_WEB_CONCURRENCY=1
 TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS=300
@@ -101,5 +103,6 @@ The frontend is already build-time configured for an absolute API base URL in [`
 - Do not commit TiDB credentials or Render secrets.
 - Keep `TRIEQUEST_ENABLE_DOCS=false` in production.
 - Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
+- Keep `TRIEQUEST_ENABLE_ADMIN=false` unless you explicitly configure `TRIEQUEST_ADMIN_EMAILS`.
 - Auth tokens are still stored in browser `localStorage`, so frontend XSS remains a meaningful risk.
 - Rate limiting is still in-memory, so it resets on restarts and is strongest with `TRIEQUEST_WEB_CONCURRENCY=1`.

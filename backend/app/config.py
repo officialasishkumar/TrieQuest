@@ -1,11 +1,13 @@
 from functools import lru_cache
 from typing import Annotated, Any, Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 DEFAULT_SECRET_KEY = "change-this-secret-key-before-production-please"
+LOCAL_HTTP_HOSTS = {"localhost", "127.0.0.1"}
 
 
 class Settings(BaseSettings):
@@ -42,11 +44,15 @@ class Settings(BaseSettings):
     auth_rate_limit_window_seconds: int = 300
     friend_lookup_rate_limit_max_attempts: int = 20
     friend_lookup_rate_limit_window_seconds: int = 60
+    enable_admin: bool = False
+    admin_emails: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    admin_rate_limit_max_attempts: int = 5
+    admin_rate_limit_window_seconds: int = 300
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://localhost:5173/auth/google/callback"
 
-    @field_validator("cors_origins", "allowed_hosts", mode="before")
+    @field_validator("cors_origins", "allowed_hosts", "admin_emails", mode="before")
     @classmethod
     def split_comma_separated_values(cls, value: Any) -> Any:
         if isinstance(value, str):
@@ -59,6 +65,18 @@ class Settings(BaseSettings):
                     items.append(cleaned)
             return items
         return value
+
+    @field_validator("admin_emails", mode="after")
+    @classmethod
+    def normalize_admin_emails(cls, value: list[str]) -> list[str]:
+        seen: set[str] = set()
+        normalized: list[str] = []
+        for item in value:
+            cleaned = item.strip().lower()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                normalized.append(cleaned)
+        return normalized
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":
@@ -73,6 +91,18 @@ class Settings(BaseSettings):
             raise ValueError("Production deployments must use MySQL, not SQLite.")
         if self.seed_demo_data:
             raise ValueError("Production deployments must disable demo data seeding.")
+        if self.enable_docs:
+            raise ValueError("Production deployments must disable API docs.")
+        if "*" in self.cors_origins:
+            raise ValueError("Production deployments must not allow wildcard CORS origins.")
+        if "*" in self.allowed_hosts:
+            raise ValueError("Production deployments must not allow wildcard hosts.")
+        for origin in self.cors_origins:
+            parsed_origin = urlparse(origin)
+            if parsed_origin.scheme != "https" and parsed_origin.hostname not in LOCAL_HTTP_HOSTS:
+                raise ValueError("Production CORS origins must use HTTPS unless they target localhost.")
+        if self.enable_admin and not self.admin_emails:
+            raise ValueError("TRIEQUEST_ADMIN_EMAILS must be set when TRIEQUEST_ENABLE_ADMIN=true.")
         return self
 
 

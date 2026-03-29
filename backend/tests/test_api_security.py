@@ -92,3 +92,49 @@ def test_docs_can_be_disabled(monkeypatch) -> None:
         assert response.status_code == 404
     finally:
         get_settings.cache_clear()
+
+
+def test_google_auth_rejects_unverified_google_email(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    get_settings.cache_clear()
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+
+    def override_get_db() -> Generator[Session, None, None]:
+        db = session_local()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    async def fake_exchange_code_for_user(_code: str):
+        from app.services.google_oauth import GoogleUser
+
+        return GoogleUser(
+            google_id="gid-123",
+            email="alex@example.com",
+            name="Alex Rivera",
+            picture=None,
+            email_verified=False,
+        )
+
+    app = main_module.create_app()
+    app.dependency_overrides[get_db] = override_get_db
+    monkeypatch.setattr("app.services.google_oauth.exchange_code_for_user", fake_exchange_code_for_user)
+
+    try:
+        with TestClient(app) as client:
+            response = client.post("/api/auth/google", json={"code": "test-code"})
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Google account email must be verified before sign-in."
+    finally:
+        get_settings.cache_clear()

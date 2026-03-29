@@ -5,16 +5,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import app.admin as admin_module
 import app.db as db_module
 import app.main as main_module
 from app.config import get_settings
 from app.models import Base, User
 from app.security import hash_password
+from app.services.rate_limit import FixedWindowRateLimiter
 
 
 def test_admin_login_uses_email_label_and_accepts_email_field(monkeypatch) -> None:
     monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
     monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    monkeypatch.setenv("TRIEQUEST_ENABLE_ADMIN", "true")
+    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "officialasishkumar@gmail.com")
     get_settings.cache_clear()
 
     engine = create_engine(
@@ -64,5 +68,67 @@ def test_admin_login_uses_email_label_and_accepts_email_field(monkeypatch) -> No
 
             admin_home = client.get("/admin/")
             assert admin_home.status_code == 200
+    finally:
+        get_settings.cache_clear()
+
+
+def test_admin_login_is_rate_limited(monkeypatch) -> None:
+    monkeypatch.setenv("TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START", "false")
+    monkeypatch.setenv("TRIEQUEST_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+    monkeypatch.setenv("TRIEQUEST_ENABLE_ADMIN", "true")
+    monkeypatch.setenv("TRIEQUEST_ADMIN_EMAILS", "officialasishkumar@gmail.com")
+    get_settings.cache_clear()
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+
+    with Session(engine) as db:
+        db.add(
+            User(
+                email="officialasishkumar@gmail.com",
+                username="asish",
+                display_name="Asish Kumar",
+                bio="",
+                favorite_topic=None,
+                favorite_platform=None,
+                avatar_url=None,
+                password_hash=hash_password("TrieQuest!123"),
+            )
+        )
+        db.commit()
+
+    monkeypatch.setattr(main_module, "engine", engine)
+    monkeypatch.setattr(db_module, "SessionLocal", session_local)
+    monkeypatch.setattr(
+        admin_module,
+        "get_admin_rate_limiter",
+        lambda: FixedWindowRateLimiter(max_attempts=2, window_seconds=300),
+    )
+
+    try:
+        app = main_module.create_app()
+
+        with TestClient(app) as client:
+            for _ in range(2):
+                response = client.post(
+                    "/admin/login",
+                    data={"email": "officialasishkumar@gmail.com", "password": "wrong-password"},
+                    follow_redirects=False,
+                )
+                assert response.status_code == 400
+
+            blocked_response = client.post(
+                "/admin/login",
+                data={"email": "officialasishkumar@gmail.com", "password": "wrong-password"},
+                follow_redirects=False,
+            )
+
+        assert blocked_response.status_code == 400
     finally:
         get_settings.cache_clear()

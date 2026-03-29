@@ -56,6 +56,7 @@ cd backend
 - Set `TRIEQUEST_SECRET_KEY` to a strong secret that is at least 32 characters long.
 - Set `TRIEQUEST_ALLOWED_HOSTS` and `TRIEQUEST_CORS_ORIGINS` for the domains you actually serve.
 - Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
+- Keep `TRIEQUEST_ENABLE_ADMIN=false` unless you also set `TRIEQUEST_ADMIN_EMAILS` explicitly.
 - Login attempts are rate-limited, JWTs carry issuer and token-type claims, and API responses send defensive security headers.
 - The current hosted deployment path in this repo is documented in `DEPLOYMENT.md` and targets Render for the backend.
 
