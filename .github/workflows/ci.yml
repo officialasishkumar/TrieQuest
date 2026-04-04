@@ -65,26 +65,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: backend/requirements.lock
+          go-version: "1.23"
+          cache-dependency-path: backend/go.sum
 
-      - name: Install backend dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -c requirements.lock -e '.[dev]' pip-audit
+      - name: Download dependencies
+        run: go mod download
 
-      - name: Lint backend
-        run: ruff check app tests
+      - name: Verify dependencies
+        run: go mod verify
 
-      - name: Validate backend dependencies
-        run: python -m pip check
+      - name: Build backend
+        run: go build ./...
+
+      - name: Vet backend
+        run: go vet ./...
 
       - name: Run backend tests
-        run: pytest
-
-      - name: Audit backend dependencies
-        run: pip-audit --ignore-vuln CVE-2026-4539
+        run: go test ./... -v -count=1

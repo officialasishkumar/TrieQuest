@@ -41,23 +41,15 @@ services:
       TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS:-300}
       TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS:-20}
       TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS:-60}
-      TRIEQUEST_FORWARDED_ALLOW_IPS: ${TRIEQUEST_FORWARDED_ALLOW_IPS:-*}
       TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START: "false"
       TRIEQUEST_ENABLE_DOCS: ${TRIEQUEST_ENABLE_DOCS:-false}
-      TRIEQUEST_WEB_CONCURRENCY: ${TRIEQUEST_WEB_CONCURRENCY:-1}
     expose:
       - "8000"
     depends_on:
       mysql:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).read()",
-        ]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

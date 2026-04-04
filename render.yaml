@@ -32,9 +32,5 @@ services:
         value: "false"
       - key: TRIEQUEST_ENABLE_DOCS
         value: "false"
-      - key: TRIEQUEST_WEB_CONCURRENCY
-        value: "1"
       - key: TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS
         value: "300"
-      - key: TRIEQUEST_FORWARDED_ALLOW_IPS
-        value: "*"
