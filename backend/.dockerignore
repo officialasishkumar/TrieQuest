@@ -1,10 +1,6 @@
-.venv
-__pycache__
-*.pyc
-*.pyo
-*.pyd
 *.db
 *.sqlite3
 smoke.db
 tunetribe.db
-tests
+triequest
+triequest.exe
