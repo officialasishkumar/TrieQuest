@@ -119,14 +119,7 @@ func EnsureCurrent(ctx context.Context, db *gorm.DB, settings config.Settings) e
 		return RunUp(ctx, db)
 	}
 
-	if err := ensureTrackingTable(db); err != nil {
-		return err
-	}
-	if err := adoptAlembicState(db); err != nil {
-		return err
-	}
-
-	current, err := currentVersion(db)
+	current, source, err := currentKnownVersion(db)
 	if err != nil {
 		return err
 	}
@@ -134,9 +127,34 @@ func EnsureCurrent(ctx context.Context, db *gorm.DB, settings config.Settings) e
 		return errors.New("database schema is not initialized; run `triequest migrate up` before starting the API")
 	}
 	if current != LatestVersion() {
-		return fmt.Errorf("database schema is at %s, expected %s; run `triequest migrate up` before starting the API", current, LatestVersion())
+		if source == "" {
+			source = "database metadata"
+		}
+		return fmt.Errorf("database schema is at %s according to %s, expected %s; run `triequest migrate up` before starting the API", current, source, LatestVersion())
 	}
 	return nil
+}
+
+func currentKnownVersion(db *gorm.DB) (string, string, error) {
+	if db.Migrator().HasTable(&model.SchemaMigration{}) {
+		current, err := currentVersion(db)
+		if err != nil {
+			return "", "", err
+		}
+		if current != "" {
+			return current, "schema_migrations", nil
+		}
+	}
+
+	current, err := currentAlembicVersion(db)
+	if err != nil {
+		return "", "", err
+	}
+	if current != "" {
+		return current, "alembic_version", nil
+	}
+
+	return "", "", nil
 }
 
 func ensureTrackingTable(db *gorm.DB) error {
@@ -172,34 +190,27 @@ func adoptAlembicState(db *gorm.DB) error {
 	if err := db.Model(&model.SchemaMigration{}).Count(&count).Error; err != nil {
 		return fmt.Errorf("count tracked migrations: %w", err)
 	}
-	if count > 0 || !db.Migrator().HasTable("alembic_version") {
+	if count > 0 {
 		return nil
 	}
 
-	type alembicRow struct {
-		Version string `gorm:"column:version_num"`
+	version, err := currentAlembicVersion(db)
+	if err != nil {
+		return err
 	}
-	var row alembicRow
-	if err := db.Table("alembic_version").Select("version_num").Limit(1).Take(&row).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
-		}
-		return fmt.Errorf("read alembic version: %w", err)
-	}
-
-	if strings.TrimSpace(row.Version) == "" {
+	if version == "" {
 		return nil
 	}
 
 	index := -1
 	for i, step := range steps {
-		if step.ID == row.Version {
+		if step.ID == version {
 			index = i
 			break
 		}
 	}
 	if index == -1 {
-		return fmt.Errorf("unsupported alembic version %q; expected one of the known TrieQuest revisions", row.Version)
+		return fmt.Errorf("unsupported alembic version %q; expected one of the known TrieQuest revisions", version)
 	}
 
 	for i := 0; i <= index; i++ {
@@ -213,4 +224,24 @@ func adoptAlembicState(db *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+func currentAlembicVersion(db *gorm.DB) (string, error) {
+	if !db.Migrator().HasTable("alembic_version") {
+		return "", nil
+	}
+
+	type alembicRow struct {
+		Version string `gorm:"column:version_num"`
+	}
+
+	var row alembicRow
+	if err := db.Table("alembic_version").Select("version_num").Limit(1).Take(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", nil
+		}
+		return "", fmt.Errorf("read alembic version: %w", err)
+	}
+
+	return strings.TrimSpace(row.Version), nil
 }
