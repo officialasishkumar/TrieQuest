@@ -1,15 +1,12 @@
 #!/bin/sh
 set -eu
 
-python -m app.bootstrap
-
-set -- uvicorn app.main:app \
-  --host 0.0.0.0 \
-  --port "${PORT:-8000}" \
-  --workers "${TRIEQUEST_WEB_CONCURRENCY:-1}"
-
-if [ -n "${TRIEQUEST_FORWARDED_ALLOW_IPS:-}" ]; then
-  set -- "$@" --proxy-headers --forwarded-allow-ips="${TRIEQUEST_FORWARDED_ALLOW_IPS}"
+if [ "$#" -eq 0 ]; then
+  set -- serve
 fi
 
-exec "$@"
+if [ -x "./triequest" ]; then
+  exec ./triequest "$@"
+fi
+
+exec go run ./cmd/triequest "$@"

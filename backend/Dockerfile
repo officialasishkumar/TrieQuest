@@ -1,30 +1,31 @@
-FROM python:3.14-slim-bookworm@sha256:5404df00cf00e6e7273375f415651837b4d192ac6859c44d3b740888ac798c99
+FROM golang:1.26-alpine AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    TRIEQUEST_ENVIRONMENT=production \
-    TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START=false
+WORKDIR /src
+
+RUN apk add --no-cache ca-certificates git
+
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/triequest ./cmd/triequest
+
+FROM alpine:3.21
+
+ENV TRIEQUEST_ENVIRONMENT=production \
+    TRIEQUEST_DATABASE_AUTO_MIGRATE=false
 
 WORKDIR /app
 
-RUN addgroup --system triequest && adduser --system --ingroup triequest triequest
+RUN apk add --no-cache ca-certificates && addgroup -S triequest && adduser -S triequest -G triequest
 
-COPY pyproject.toml README.md alembic.ini ./
-COPY requirements.lock ./
-COPY start.sh ./
-COPY alembic ./alembic
-COPY app ./app
-
-RUN pip install --upgrade pip \
-    && pip install --constraint requirements.lock . \
-    && chmod +x /app/start.sh
-
-RUN chown -R triequest:triequest /app
+COPY --from=builder /out/triequest /app/triequest
 
 USER triequest
 
 EXPOSE 8000
 
-CMD ["/app/start.sh"]
+CMD ["/app/triequest", "serve"]
