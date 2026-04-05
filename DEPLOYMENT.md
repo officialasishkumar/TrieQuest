@@ -33,12 +33,7 @@ Use TiDB Cloud Starter.
 - TiDB Cloud Starter requires TLS.
 - TiDB Cloud Starter closes idle connections after 5 minutes, so this repo sets `TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS=300` for Render.
 
-For the Python + SQLAlchemy path, TiDB documents using a CA path plus:
-
-- `ssl_verify_cert=True`
-- `ssl_verify_identity=True`
-
-It also documents configuring a public connection and an IP access list before the first connection.
+TiDB documents configuring a public connection and an IP access list before the first connection.
 
 ## Render env values
 
