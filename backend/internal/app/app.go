@@ -51,8 +51,12 @@ func RunServer(ctx context.Context, logger *slog.Logger, settings config.Setting
 	}
 
 	indices := search.NewIndex()
-	if err := startup.Run(ctx, db, settings, indices); err != nil {
-		return err
+	if settings.RunStartupTasksOnAppStart {
+		if err := startup.Run(ctx, db, settings, indices); err != nil {
+			return err
+		}
+	} else {
+		logger.Info("startup tasks disabled; search indices will remain cold until the service is restarted with TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START=true")
 	}
 
 	router := httpapi.NewRouter(httpapi.Dependencies{
