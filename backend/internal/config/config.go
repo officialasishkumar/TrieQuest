@@ -46,6 +46,7 @@ type Settings struct {
 	GoogleClientSecret              string
 	GoogleRedirectURI               string
 	ForwardedAllowIPs               string
+	SessionCookieName               string
 	Port                            string
 }
 
@@ -82,6 +83,7 @@ func Load() (Settings, error) {
 		GoogleClientSecret:              strings.TrimSpace(os.Getenv("TRIEQUEST_GOOGLE_CLIENT_SECRET")),
 		GoogleRedirectURI:               getEnv("TRIEQUEST_GOOGLE_REDIRECT_URI", "http://localhost:5173/auth/google/callback"),
 		ForwardedAllowIPs:               strings.TrimSpace(os.Getenv("TRIEQUEST_FORWARDED_ALLOW_IPS")),
+		SessionCookieName:               getEnv("TRIEQUEST_SESSION_COOKIE_NAME", "triequest-admin-session"),
 		Port:                            getEnv("PORT", "8000"),
 	}
 
