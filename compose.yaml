@@ -23,13 +23,15 @@ services:
       - app
 
   backend:
+    profiles:
+      - app
     build:
       context: ./backend
     environment:
       TRIEQUEST_ENVIRONMENT: production
       TRIEQUEST_SECRET_KEY: ${TRIEQUEST_SECRET_KEY:?set TRIEQUEST_SECRET_KEY in your environment or .env file}
-      TRIEQUEST_DATABASE_URL: mysql+pymysql://${MYSQL_USER:-triequest}:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}@mysql:3306/${MYSQL_DATABASE:-triequest}?charset=utf8mb4
-      TRIEQUEST_DATABASE_AUTO_MIGRATE: ${TRIEQUEST_DATABASE_AUTO_MIGRATE:-true}
+      TRIEQUEST_DATABASE_URL: mysql://${MYSQL_USER:-triequest}:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}@mysql:3306/${MYSQL_DATABASE:-triequest}?charset=utf8mb4&parseTime=true
+      TRIEQUEST_DATABASE_AUTO_MIGRATE: "false"
       TRIEQUEST_CORS_ORIGINS: ${TRIEQUEST_CORS_ORIGINS:?set TRIEQUEST_CORS_ORIGINS in your environment or .env file}
       TRIEQUEST_ALLOWED_HOSTS: ${TRIEQUEST_ALLOWED_HOSTS:?set TRIEQUEST_ALLOWED_HOSTS in your environment or .env file}
       TRIEQUEST_SEED_DEMO_DATA: ${TRIEQUEST_SEED_DEMO_DATA:-false}
@@ -41,28 +43,51 @@ services:
       TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS:-300}
       TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS:-20}
       TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS: ${TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS:-60}
-      TRIEQUEST_FORWARDED_ALLOW_IPS: ${TRIEQUEST_FORWARDED_ALLOW_IPS:-*}
-      TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START: "false"
       TRIEQUEST_ENABLE_DOCS: ${TRIEQUEST_ENABLE_DOCS:-false}
-      TRIEQUEST_WEB_CONCURRENCY: ${TRIEQUEST_WEB_CONCURRENCY:-1}
+      TRIEQUEST_SESSION_COOKIE_NAME: ${TRIEQUEST_SESSION_COOKIE_NAME:-triequest-admin-session}
     expose:
       - "8000"
     depends_on:
       mysql:
         condition: service_healthy
+      backend-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
           "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).read()",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:8000/api/health",
         ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    networks:
+      - app
+
+  backend-migrate:
+    profiles:
+      - app
+    build:
+      context: ./backend
+    command: ["/app/triequest", "migrate", "up"]
+    environment:
+      TRIEQUEST_ENVIRONMENT: production
+      TRIEQUEST_SECRET_KEY: ${TRIEQUEST_SECRET_KEY:?set TRIEQUEST_SECRET_KEY in your environment or .env file}
+      TRIEQUEST_DATABASE_URL: mysql://${MYSQL_USER:-triequest}:${MYSQL_PASSWORD:?set MYSQL_PASSWORD in your environment or .env file}@mysql:3306/${MYSQL_DATABASE:-triequest}?charset=utf8mb4&parseTime=true
+      TRIEQUEST_DATABASE_AUTO_MIGRATE: "false"
+      TRIEQUEST_DATABASE_SSL_CA_PATH: ${TRIEQUEST_DATABASE_SSL_CA_PATH:-}
+      TRIEQUEST_DATABASE_SSL_VERIFY_CERT: ${TRIEQUEST_DATABASE_SSL_VERIFY_CERT:-false}
+      TRIEQUEST_DATABASE_SSL_VERIFY_IDENTITY: ${TRIEQUEST_DATABASE_SSL_VERIFY_IDENTITY:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
     networks:
       - app
 

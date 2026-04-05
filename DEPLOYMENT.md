@@ -11,7 +11,7 @@ This avoids self-hosting the API on a VM and removes the need to expose your com
 ## Why this setup
 
 - Render provides the public HTTPS backend URL.
-- TiDB Cloud Starter is MySQL-compatible and works with SQLAlchemy + PyMySQL.
+- TiDB Cloud Starter is MySQL-compatible and works with the Go MySQL driver.
 - Vercel continues to host the frontend separately with `VITE_API_BASE_URL` pointed at the Render backend.
 
 Render free web services spin down after 15 minutes without traffic, so the first request after idle can be slow. If you need consistent uptime, move the backend to a paid Render plan.
@@ -47,20 +47,18 @@ Set these on the Render backend service:
 ```dotenv
 TRIEQUEST_ENVIRONMENT=production
 TRIEQUEST_SECRET_KEY=<generate a long random secret>
-TRIEQUEST_DATABASE_URL=mysql+pymysql://USER:PASSWORD@HOST:4000/triequest
+TRIEQUEST_DATABASE_URL=mysql://USER:PASSWORD@HOST:4000/triequest?parseTime=true&charset=utf8mb4
 TRIEQUEST_DATABASE_SSL_CA_PATH=/etc/ssl/certs/ca-certificates.crt
 TRIEQUEST_DATABASE_SSL_VERIFY_CERT=true
 TRIEQUEST_DATABASE_SSL_VERIFY_IDENTITY=true
 TRIEQUEST_CORS_ORIGINS=https://trie-quest.vercel.app
 TRIEQUEST_ALLOWED_HOSTS=triequest-api.onrender.com,127.0.0.1,localhost
-TRIEQUEST_DATABASE_AUTO_MIGRATE=true
+TRIEQUEST_DATABASE_AUTO_MIGRATE=false
 TRIEQUEST_SEED_DEMO_DATA=false
 TRIEQUEST_ENABLE_ADMIN=false
 TRIEQUEST_ADMIN_EMAILS=
 TRIEQUEST_ENABLE_DOCS=false
-TRIEQUEST_WEB_CONCURRENCY=1
 TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS=300
-TRIEQUEST_FORWARDED_ALLOW_IPS=*
 ```
 
 If Render gives you a different service hostname, update `TRIEQUEST_ALLOWED_HOSTS` to match it exactly.
@@ -74,6 +72,9 @@ If Render gives you a different service hostname, update `TRIEQUEST_ALLOWED_HOST
 5. Copy the host, port, username, password, and database name.
 6. Add Render's outbound IP ranges to TiDB's IP access list.
 7. Build the `TRIEQUEST_DATABASE_URL` from those values.
+8. Run `go run ./cmd/triequest migrate up` against the target database before starting the web service.
+
+The Go API only performs a read-only schema version check during `serve` when `TRIEQUEST_DATABASE_AUTO_MIGRATE=false`. It will not create `schema_migrations` or adopt Alembic state on production boot; explicit `migrate up` is the only path that mutates migration metadata.
 
 Render documents where to find outbound IP ranges:
 
@@ -95,7 +96,8 @@ The frontend is already build-time configured for an absolute API base URL in [`
 
 - [`render.yaml`](./render.yaml): Render Blueprint for the backend
 - [`.env.example`](./.env.example): example production env values for Render + TiDB
-- [`backend/start.sh`](./backend/start.sh): now respects Render's `PORT`
+- [`backend/Dockerfile`](./backend/Dockerfile): builds and runs the Go backend image
+- [`backend/cmd/triequest`](./backend/cmd/triequest): Go entrypoint for `serve` and `migrate up`
 
 ## Security notes
 
@@ -103,6 +105,8 @@ The frontend is already build-time configured for an absolute API base URL in [`
 - Do not commit TiDB credentials or Render secrets.
 - Keep `TRIEQUEST_ENABLE_DOCS=false` in production.
 - Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
+- Keep `TRIEQUEST_DATABASE_AUTO_MIGRATE=false` in production and run schema migration explicitly before rollout.
+- The `serve` path performs read-only schema verification only; it does not create or backfill migration tracking state on startup.
 - Keep `TRIEQUEST_ENABLE_ADMIN=false` unless you explicitly configure `TRIEQUEST_ADMIN_EMAILS`.
 - Auth tokens are still stored in browser `localStorage`, so frontend XSS remains a meaningful risk.
-- Rate limiting is still in-memory, so it resets on restarts and is strongest with `TRIEQUEST_WEB_CONCURRENCY=1`.
+- Rate limiting is still in-memory and process-local, so it resets on restarts and is strongest with a single backend instance.

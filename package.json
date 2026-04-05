@@ -5,8 +5,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
     "test:frontend": "npm --prefix frontend run test",
-    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
-    "test:backend": "cd backend && pytest",
+    "dev:backend": "cd backend && go run ./cmd/triequest serve",
+    "test:backend": "cd backend && go test ./...",
     "build": "npm run build:frontend"
   }
 }

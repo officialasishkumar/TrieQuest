@@ -5,7 +5,7 @@
 TrieQuest is a two-part workspace:
 
 - `frontend/`: React + Vite client
-- `backend/`: FastAPI API for auth, friends, squads, shared problems, platform metadata resolution, and analytics
+- `backend/`: Go API for auth, friends, squads, shared problems, platform metadata resolution, analytics, and challenges
 
 ## Quick Start
 
@@ -20,10 +20,8 @@ Backend:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-uvicorn app.main:app --reload --port 8000
+go run ./cmd/triequest migrate up
+go run ./cmd/triequest serve
 ```
 
 The frontend proxies `/api` to `http://127.0.0.1:8000` in development.
@@ -47,8 +45,8 @@ Backend:
 
 ```bash
 cd backend
-./.venv/bin/pytest
-./.venv/bin/python -m compileall app
+go test ./...
+go build ./cmd/triequest
 ```
 
 ## Security And Production
@@ -56,6 +54,7 @@ cd backend
 - Set `TRIEQUEST_SECRET_KEY` to a strong secret that is at least 32 characters long.
 - Set `TRIEQUEST_ALLOWED_HOSTS` and `TRIEQUEST_CORS_ORIGINS` for the domains you actually serve.
 - Keep `TRIEQUEST_SEED_DEMO_DATA=false` in production.
+- Keep `TRIEQUEST_DATABASE_AUTO_MIGRATE=false` in production and run `go run ./cmd/triequest migrate up` explicitly before rollout.
 - Keep `TRIEQUEST_ENABLE_ADMIN=false` unless you also set `TRIEQUEST_ADMIN_EMAILS` explicitly.
 - Login attempts are rate-limited, JWTs carry issuer and token-type claims, and API responses send defensive security headers.
 - The current hosted deployment path in this repo is documented in `DEPLOYMENT.md` and targets Render for the backend.
