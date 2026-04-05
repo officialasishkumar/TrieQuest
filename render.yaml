@@ -25,16 +25,12 @@ services:
       - key: TRIEQUEST_ALLOWED_HOSTS
         value: triequest-api.onrender.com,127.0.0.1,localhost
       - key: TRIEQUEST_DATABASE_AUTO_MIGRATE
-        value: "true"
+        value: "false"
       - key: TRIEQUEST_SEED_DEMO_DATA
         value: "false"
       - key: TRIEQUEST_ENABLE_ADMIN
         value: "false"
       - key: TRIEQUEST_ENABLE_DOCS
         value: "false"
-      - key: TRIEQUEST_WEB_CONCURRENCY
-        value: "1"
       - key: TRIEQUEST_DATABASE_POOL_RECYCLE_SECONDS
         value: "300"
-      - key: TRIEQUEST_FORWARDED_ALLOW_IPS
-        value: "*"

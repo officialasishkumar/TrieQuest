@@ -83,6 +83,8 @@ backend/.pytest_cache/
 backend/.ruff_cache/
 backend/htmlcov/
 backend/.coverage
+backend/triequest
+backend/triequest.exe
 backend/tunetribe.db
 
 # OS Files

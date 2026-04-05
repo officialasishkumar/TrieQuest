@@ -1,27 +1,36 @@
 # TrieQuest Backend
 
-FastAPI backend for authentication, squads, friends, shared problem ingestion, and analytics.
+Go backend for authentication, squads, friends, shared problem ingestion, analytics, and challenges.
 
 ## Run
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-uvicorn app.main:app --reload --port 8000
+go run ./cmd/triequest migrate up
+go run ./cmd/triequest serve
+```
+
+## Migrations
+
+Run schema updates explicitly before a production rollout:
+
+```bash
+go run ./cmd/triequest migrate up
 ```
 
 ## Verify
 
 ```bash
-./.venv/bin/pytest
-./.venv/bin/python -m compileall app
+go test ./...
+go build ./cmd/triequest
 ```
 
 ## Key Settings
 
-- Local development defaults to SQLite.
-- Production requires MySQL, a non-default `TRIEQUEST_SECRET_KEY` that is at least 32 characters long, API docs disabled, and demo seeding disabled.
+- Local development can use SQLite or MySQL-compatible databases.
+- Production requires MySQL-compatible storage, a non-default `TRIEQUEST_SECRET_KEY` that is at least 32 characters long, docs disabled, and demo seeding disabled.
+- Keep `TRIEQUEST_DATABASE_AUTO_MIGRATE=false` in production and run `go run ./cmd/triequest migrate up` separately before the service starts.
+- Startup schema checks are read-only when `TRIEQUEST_DATABASE_AUTO_MIGRATE=false`; the API will tell you to run `triequest migrate up` instead of mutating production schema state on boot.
+- `TRIEQUEST_RUN_STARTUP_TASKS_ON_APP_START` controls whether demo seeding and in-memory search-index warmup run during API startup.
 - `TRIEQUEST_AUTH_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_AUTH_RATE_LIMIT_WINDOW_SECONDS` control login throttling.
 - `TRIEQUEST_ADMIN_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_ADMIN_RATE_LIMIT_WINDOW_SECONDS` control admin login throttling.
 - `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_MAX_ATTEMPTS` and `TRIEQUEST_FRIEND_LOOKUP_RATE_LIMIT_WINDOW_SECONDS` control friend-search throttling.
@@ -29,8 +38,8 @@ uvicorn app.main:app --reload --port 8000
 
 ## Problem Metadata
 
-Problem URLs are resolved through a metadata service that normalizes platform links and returns a consistent problem snapshot. The current backend supports LeetCode, Codeforces, CodeChef, AtCoder, HackerRank, TopCoder, GeeksForGeeks, and Coder-style challenge links.
+Problem URLs are resolved through a metadata service that normalizes platform links and returns a consistent problem snapshot. The backend supports LeetCode, Codeforces, CodeChef, AtCoder, HackerRank, TopCoder, GeeksForGeeks, and Coder-style challenge links.
 
 ## Container Startup
 
-The production image runs `python -m app.bootstrap` before starting Uvicorn so the database is initialized and demo data can be seeded when enabled.
+The production image now starts the Go binary directly on port `8000`. Database migrations are intentionally not run at boot in production, and the API does not create migration-tracking tables during a production readiness check.
